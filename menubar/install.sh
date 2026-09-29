@@ -59,12 +59,46 @@ write_plist() {
   fi
 }
 
-remove_legacy() {
+# bootout devuelve antes de que launchd termine de bajar el servicio.
+wait_unloaded() { # wait_unloaded <domain/label>
+  local target="$1" i
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+ launchctl bootout %s/%s (ignorar error)\n' "$GUI" "$LEGACY_LABEL"
-  else
-    launchctl bootout "$GUI/$LEGACY_LABEL" 2>/dev/null || true
+    printf '+ wait until unloaded %s\n' "$target"
+    return 0
   fi
+  for ((i = 0; i < 50; i++)); do
+    launchctl print "$target" >/dev/null 2>&1 || return 0
+    sleep 0.2
+  done
+  echo "error: $target sigue cargado tras 10 s del bootout" >&2
+  exit 1
+}
+
+bootout_and_wait() { # bootout_and_wait <domain/label>
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '+ launchctl bootout %s (ignorar error)\n' "$1"
+  else
+    launchctl bootout "$1" 2>/dev/null || true
+  fi
+  wait_unloaded "$1"
+}
+
+bootstrap_retry() { # bootstrap_retry <domain> <plist>
+  local n
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '+ launchctl bootstrap %s %s (hasta 3 intentos, 1 s entre ellos)\n' "$1" "$2"
+    return 0
+  fi
+  for n in 1 2 3; do
+    launchctl bootstrap "$1" "$2" && return 0
+    if [[ "$n" -lt 3 ]]; then sleep 1; fi
+  done
+  echo "error: launchctl bootstrap fallo tras 3 intentos" >&2
+  exit 1
+}
+
+remove_legacy() {
+  bootout_and_wait "$GUI/$LEGACY_LABEL"
   run rm -f "$LEGACY_PLIST"
   run rm -rf "$LEGACY_APP"
 }
@@ -81,22 +115,13 @@ cmd_install() {
   write_plist
   run plutil -lint "$PLIST"
   # Idempotente: bootout ignora el error si el agente no estaba cargado.
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+ launchctl bootout %s/%s (ignorar error)\n' "$GUI" "$LABEL"
-    printf '+ launchctl bootstrap %s %s\n' "$GUI" "$PLIST"
-  else
-    launchctl bootout "$GUI/$LABEL" 2>/dev/null || true
-    launchctl bootstrap "$GUI" "$PLIST"
-  fi
+  bootout_and_wait "$GUI/$LABEL"
+  bootstrap_retry "$GUI" "$PLIST"
   echo "Instalado: $DST_APP (LaunchAgent $LABEL)"
 }
 
 cmd_uninstall() {
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+ launchctl bootout %s/%s (ignorar error)\n' "$GUI" "$LABEL"
-  else
-    launchctl bootout "$GUI/$LABEL" 2>/dev/null || true
-  fi
+  bootout_and_wait "$GUI/$LABEL"
   run rm -f "$PLIST"
   run rm -rf "$DST_APP"
   remove_legacy

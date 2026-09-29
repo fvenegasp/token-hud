@@ -24,6 +24,35 @@ run() {
 
 is_loaded() { launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; }
 
+# bootout returns before launchd finishes tearing the service down.
+wait_unloaded() { # wait_unloaded <domain/label>
+    local target="$1" i
+    if ((DRY)); then
+        echo "[dry-run] + wait until unloaded $target"
+        return 0
+    fi
+    for ((i = 0; i < 50; i++)); do
+        launchctl print "$target" >/dev/null 2>&1 || return 0
+        sleep 0.2
+    done
+    echo "error: $target still loaded 10 s after bootout" >&2
+    exit 1
+}
+
+bootstrap_retry() { # bootstrap_retry <domain> <plist>
+    local n
+    if ((DRY)); then
+        echo "[dry-run] launchctl bootstrap $1 $2 (up to 3 attempts, 1 s apart)"
+        return 0
+    fi
+    for n in 1 2 3; do
+        launchctl bootstrap "$1" "$2" && return 0
+        if ((n < 3)); then sleep 1; fi
+    done
+    echo "error: launchctl bootstrap failed after 3 attempts" >&2
+    exit 1
+}
+
 candidates() { # candidate absolute paths for a binary, in priority order, deduped
     local bin="$1" seen=":" c
     {
@@ -101,8 +130,11 @@ cmd_install() {
     else
         render "$PLIST"
     fi
-    if is_loaded; then run launchctl bootout "$DOMAIN/$LABEL"; fi
-    run launchctl bootstrap "$DOMAIN" "$PLIST"
+    if is_loaded; then
+        run launchctl bootout "$DOMAIN/$LABEL"
+        wait_unloaded "$DOMAIN/$LABEL"
+    fi
+    bootstrap_retry "$DOMAIN" "$PLIST"
     if ((DRY)); then return 0; fi
     cmd_status
 }
@@ -116,7 +148,12 @@ cmd_uninstall() {
             *) echo "unknown option: $a" >&2; exit 2 ;;
         esac
     done
-    if is_loaded; then run launchctl bootout "$DOMAIN/$LABEL"; else echo "not loaded"; fi
+    if is_loaded; then
+        run launchctl bootout "$DOMAIN/$LABEL"
+        wait_unloaded "$DOMAIN/$LABEL"
+    else
+        echo "not loaded"
+    fi
     run rm -f "$PLIST" "$ENV_FILE"
     if ((purge)); then
         ans=n
