@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:11.678231+00:00",
+    "http_status": null,
+    "source": "codex -s read-only -a never app-server (account/rateLimits/read)"
+  },
+  "body": {
+    "id": 2,
+    "result": {
+      "ordinaryUsageAllowed": false,
+      "rateLimits": {
+        "limitId": "codex",
+        "limitName": null,
+        "normalModelSlug": null,
+        "primary": {
+          "usedPercent": 0,
+          "windowDurationMins": 300,
+          "resetsAt": 1790721251
+        },
+        "secondary": {
+          "usedPercent": 100,
+          "windowDurationMins": 10080,
+          "resetsAt": 1791058981
+        },
+        "credits": {
+          "hasCredits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individualLimit": null,
+        "spendControlReached": false,
+        "planType": "plus",
+        "rateLimitReachedType": "rate_limit_reached"
+      },
+      "rateLimitsByLimitId": {
+        "codex": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 0,
+            "windowDurationMins": 300,
+            "resetsAt": 1790721251
+          },
+          "secondary": {
+            "usedPercent": 100,
+            "windowDurationMins": 10080,
+            "resetsAt": 1791058981
+          },
+          "credits": {
+            "hasCredits": false,
+            "unlimited": false,
+            "balance": "0"
+          },
+          "individualLimit": null,
+          "spendControlReached": false,
+          "planType": "plus",
+          "rateLimitReachedType": "rate_limit_reached"
+        }
+      },
+      "rateLimitResetCredits": {
+        "availableCount": 3,
+        "credits": [
+          {
+            "id": "<redacted>",
+            "resetType": "codexRateLimits",
+            "status": "available",
+            "grantedAt": 1788486940,
+            "expiresAt": 1791078940,
+            "title": "Full reset (Weekly + 5 hr)",
+            "description": "Thanks for using Codex! You've been granted one free rate limit reset."
+          },
+          {
+            "id": "<redacted>",
+            "resetType": "codexRateLimits",
+            "status": "available",
+            "grantedAt": 1788565760,
+            "expiresAt": 1791157760,
+            "title": "Full reset (Weekly + 5 hr)",
+            "description": "Thanks for using Codex! You've been granted one free rate limit reset."
+          },
+          {
+            "id": "<redacted>",
+            "resetType": "codexRateLimits",
+            "status": "available",
+            "grantedAt": 1790108196,
+            "expiresAt": 1792700196,
+            "title": "Full reset (Weekly + 5 hr)",
+            "description": "Thanks for using Codex! You've been granted one free rate limit reset."
+          }
+        ]
+      },
+      "accountId": "<redacted>",
+      "rateLimitUpsell": {
+        "banner_type": "plus_rate_limit_reached",
+        "title": "You're out of Codex messages",
+        "description": "Your rate limit resets on {time}. Upgrade or use one of your rate limit resets now.",
+        "ctas": [
+          {
+            "action": "open_pricing_dialog",
+            "label": "Upgrade"
+          },
+          {
+            "action": "reset_usage",
+            "label": "Reset usage"
+          }
+        ],
+        "reset_at": 1791058981,
+        "referral": null,
+        "request_url": null
+      }
+    }
+  }
+}

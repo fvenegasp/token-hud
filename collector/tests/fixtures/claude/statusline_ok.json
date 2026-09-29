@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:10.774123+00:00",
+    "http_status": null,
+    "source": "~/.claude/daemon/.statusline-last.json"
+  },
+  "body": {
+    "session_id": "<redacted>",
+    "cwd": "<redacted>",
+    "version": "2.1.280",
+    "rate_limits": {
+      "five_hour": {
+        "used_percentage": 49,
+        "resets_at": 1790704800
+      },
+      "seven_day": {
+        "used_percentage": 24,
+        "resets_at": 1791198000
+      }
+    }
+  }
+}

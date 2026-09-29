@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>TOKEN HUD</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<meta name="theme-color" content="#000000" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--ok:#2bff88;--warn:#ffd400;--crit:#ff3b5c;--dim:#6b7280;--bg:#000;--c-dim:#6b7280}
+  *{box-sizing:border-box;margin:0}
+  html,body{width:100vw;height:100dvh;overflow:hidden;background:var(--bg);color:#fff;
+    font-family:'Chakra Petch',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{container-type:size}
+  /* Unidad de escala: 1 u = 1 px CSS a 480x320; se ajusta al menor de ancho/alto del contenedor */
+  #app{--u:min(calc(100cqw / 480), calc(100cqh / 320));width:100cqw;height:100cqh;display:flex;flex-direction:column;overflow:hidden;position:relative;
+    background:radial-gradient(140% 120% at 50% 0%,rgba(255,255,255,.05),transparent 45%),#000}
+  #app::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);opacity:.5}
+  .mono{font-family:'Space Mono',ui-monospace,monospace}
+  /* header */
+  .hdr{flex:0 0 calc(26 * var(--u));display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 calc(10 * var(--u));
+    border-bottom:1px solid rgba(255,255,255,.1)}
+  .clock{font-weight:700;font-size:calc(17 * var(--u));letter-spacing:.08em}
+  .date{font-size:calc(10 * var(--u));letter-spacing:.08em;color:#cbd5e1;text-transform:uppercase}
+  .fresh{justify-self:end;font-size:calc(10 * var(--u));color:#cbd5e1;display:flex;align-items:center;gap:calc(4 * var(--u))}
+  /* rows */
+  .rows{flex:1;min-height:0;display:flex;flex-direction:column}
+  .row{flex:1 1 0;min-height:0;overflow:hidden;display:grid;grid-template-columns:calc(40 * var(--u)) calc(70 * var(--u)) calc(68 * var(--u)) minmax(0,1.2fr) minmax(0,.9fr);align-items:center;
+    column-gap:calc(6 * var(--u));padding:0 calc(8 * var(--u)) 0 calc(8 * var(--u));border-bottom:1px solid rgba(255,255,255,.07);
+    border-left:calc(3 * var(--u)) solid var(--accent);position:relative}
+  .logo{width:calc(40 * var(--u));height:calc(40 * var(--u));object-fit:contain}
+  .mono-badge{width:calc(40 * var(--u));height:calc(40 * var(--u));border-radius:calc(9 * var(--u));display:grid;place-items:center;font-weight:700;font-size:calc(25 * var(--u));
+    color:var(--accent);border:1.5px solid var(--accent);box-shadow:0 0 calc(8 * var(--u)) color-mix(in srgb,var(--accent) 45%,transparent)}
+  .nm{font-weight:700;font-size:calc(16 * var(--u));letter-spacing:.02em;color:var(--accent);line-height:calc(19 * var(--u));white-space:nowrap;overflow:hidden}
+  .sub{font-size:calc(11 * var(--u));color:#cbd5e1;line-height:calc(13 * var(--u));display:flex;align-items:center;gap:calc(3 * var(--u));white-space:nowrap}
+  .plan{text-transform:uppercase;color:#9ca3af;margin-right:1px}
+  .dot{width:calc(6 * var(--u));height:calc(6 * var(--u));border-radius:50%;flex:0 0 auto;display:inline-block}
+  .dot.ok{background:var(--ok);box-shadow:0 0 calc(5 * var(--u)) var(--ok)}
+  .dot.stale{background:var(--warn);box-shadow:0 0 calc(5 * var(--u)) var(--warn)}
+  .dot.error{background:var(--crit);box-shadow:0 0 calc(5 * var(--u)) var(--crit)}
+  .big{display:flex;flex-direction:column;line-height:1;min-width:0}
+  .big .num{height:calc(30 * var(--u));line-height:calc(30 * var(--u));font-size:calc(28 * var(--u));font-weight:700;letter-spacing:-.02em;text-shadow:0 0 .5em currentColor;white-space:nowrap;overflow:visible}
+  .big .num small{font-size:calc(15 * var(--u));margin-left:1px}
+  .big .lbl{height:calc(12 * var(--u));line-height:calc(12 * var(--u));font-size:calc(10 * var(--u));letter-spacing:.06em;text-transform:uppercase;color:#cbd5e1;margin-top:1px;white-space:nowrap}
+  .mid{min-width:0;display:flex;flex-direction:column;gap:calc(4 * var(--u))}
+  .msg{height:calc(30 * var(--u));display:flex;align-items:flex-end;overflow:hidden}
+  .msg>span.t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .msg2{height:calc(12 * var(--u));line-height:calc(12 * var(--u));font-size:calc(10 * var(--u));color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .msg{font-size:calc(12 * var(--u));font-weight:600;line-height:calc(15 * var(--u))}
+  .msg .cd{font-weight:500;color:#cbd5e1;white-space:nowrap;display:inline-block}
+  .bar{position:relative;width:72%;flex:0 0 auto;height:calc(3 * var(--u));border-radius:calc(2 * var(--u));background:rgba(255,255,255,.12);overflow:visible}
+  .bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:calc(2 * var(--u));box-shadow:0 0 calc(4 * var(--u)) currentColor}
+  .bar>u{position:absolute;top:calc(-2 * var(--u));bottom:calc(-2 * var(--u));width:calc(2 * var(--u));background:#fff;opacity:.85;text-decoration:none}
+  .oth{text-align:left;line-height:1;min-width:0;overflow:hidden;border-left:1px solid rgba(255,255,255,.1);padding-left:calc(10 * var(--u));padding-right:calc(2 * var(--u))}
+  .oth .l{height:calc(12 * var(--u));line-height:calc(12 * var(--u));font-size:calc(11 * var(--u));color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}
+  .oth .v{height:calc(24 * var(--u));line-height:calc(24 * var(--u));font-size:calc(23 * var(--u));font-weight:700;margin-top:calc(2 * var(--u))}
+  .oth .v.txt{font-size:calc(11 * var(--u));font-weight:600;color:#cbd5e1}
+  .oth .r{height:calc(12 * var(--u));line-height:calc(12 * var(--u));font-size:calc(11 * var(--u));color:#9ca3af;margin-top:calc(2 * var(--u));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .c-ok{color:var(--ok)} .c-warn{color:var(--warn)} .c-crit{color:var(--crit)} .c-dim{color:#9ca3af}
+  .big .num.idle{font-size:calc(14 * var(--u));text-shadow:none;letter-spacing:0;font-weight:600}
+  /* error / carried */
+  .row.error .big,.row.error .oth,.row.error .bar,.row.blocked .big,.row.blocked .bar{opacity:.4}
+  .row.error,.row.blocked{background:linear-gradient(90deg,rgba(255,59,92,.12),transparent 70%)}
+  .errtag{font-weight:700;font-size:calc(9 * var(--u));color:#fff;background:var(--crit);border-radius:calc(3 * var(--u));padding:0 calc(4 * var(--u));margin-right:calc(4 * var(--u));letter-spacing:.06em}
+  
+  .warn{color:var(--warn)}
+  .nodata{flex:1;display:grid;place-items:center;text-align:center;padding:0 calc(20 * var(--u));font-size:calc(15 * var(--u));color:#cbd5e1;font-weight:600}
+
+  /* ── Modal QR (restaurado de 01c18f2) ── */
+    /* Botón discreto en la barra de estado: glifo QR tenue, acento al hover. */
+    .qr-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: calc(15 * var(--u)); height: calc(15 * var(--u)); margin-left: calc(2 * var(--u)); padding: 0;
+      flex: 0 0 auto;
+      color: var(--c-dim); background: none; border: none; cursor: pointer;
+      transition: color .18s ease, filter .18s ease;
+    }
+    .qr-btn:hover { color: #fff; filter: drop-shadow(0 0 .4em rgba(255,255,255,.55)); }
+    .qr-btn svg { width: 100%; height: 100%; display: block; }
+
+    /* Overlay a pantalla completa: fondo negro translúcido + blur sutil. */
+    #qr-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.82);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      /* #app oculta el cursor y la selección; el modal los necesita. */
+      cursor: auto; user-select: text; -webkit-user-select: text;
+    }
+    #qr-overlay.is-open { display: flex; }
+
+    /* Caja del modal: fondo oscuro, borde tenue, tipografía HUD. */
+    #qr-modal {
+      position: relative;
+      max-width: min(92vw, 320px);
+      max-height: calc(100dvh - 16px);
+      overflow: auto;
+      padding: clamp(14px, 3vw, 22px);
+      background: #060708;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;
+      box-shadow: 0 0 2.2em rgba(0,0,0,.8);
+      text-align: center;
+      font-family: 'Space Mono', ui-monospace, monospace;
+    }
+    #qr-modal h2 {
+      margin: 0 0 .6em;
+      font-family: 'Chakra Petch', sans-serif; font-weight: 700;
+      font-size: clamp(.8rem, 2.4vw, 1rem); letter-spacing: .1em; color: #fff;
+    }
+    /* Panel claro detrás del QR: módulos oscuros sobre fondo claro → escaneo fiable. */
+    #qr-box {
+      display: inline-block; padding: 10px; background: #fff; border-radius: 6px;
+      line-height: 0; /* evita hueco bajo el <canvas>/<img> del QR */
+    }
+    #qr-box canvas, #qr-box img { display: block; width: 240px !important; height: 240px !important; }
+    #qr-url {
+      display: block; margin: .8em auto 0; max-width: 100%;
+      font-size: .62rem; color: var(--c-dim); word-break: break-all;
+      user-select: all; -webkit-user-select: all;
+    }
+    #qr-hint { margin: .7em 0 0; font-size: .7rem; color: #fff; letter-spacing: .06em; }
+    #qr-sub   { margin: .25em 0 0; font-size: .58rem; color: var(--c-dim); }
+    #qr-close {
+      position: absolute; top: 4px; right: 6px;
+      width: 1.7em; height: 1.7em; padding: 0;
+      font-size: .9rem; line-height: 1; color: var(--c-dim);
+      background: none; border: none; cursor: pointer;
+      transition: color .18s ease;
+    }
+    #qr-btn { cursor: pointer; }
+    #qr-close:hover { color: #fff; }
+  </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div id="app"></div>
+    <!-- Modal QR: abrir el HUD desde un teléfono en la misma red Wi-Fi -->
+    <div id="qr-overlay" role="dialog" aria-modal="true" aria-label="Código QR para abrir en el teléfono">
+      <div id="qr-modal">
+        <button id="qr-close" type="button" aria-label="Cerrar">✕</button>
+        <h2>ABRIR EN EL TELÉFONO</h2>
+        <span id="qr-box"></span>
+        <code id="qr-url"></code>
+        <p id="qr-hint">Escaneá para abrir en el teléfono</p>
+        <p id="qr-sub">misma red Wi-Fi</p>
+      </div>
+    </div>
+<script>
+(function(){
+  const REFRESH_MS = 15000, TIMEOUT_MS = 5000;
+  const STATE_URL = new URLSearchParams(location.search).get('state') || 'data/state.json';
+  const CFG = [
+    {id:'claude',name:'CLAUDE',accent:'#ff6b35',logo:'assets/logos/claude.svg'},
+    {id:'codex', name:'CODEX', accent:'#9d6bff',logo:'assets/logos/openai.svg'},
+    {id:'kimi',  name:'KIMI',  accent:'#ff5fb8',logo:null,mono:'K'},
+    {id:'zai',   name:'GLM',   accent:'#00e5ff',logo:'assets/logos/zai.svg'},
+    {id:'agy',   name:'GEMINI',accent:'#4c8dff',logo:'assets/logos/antigravity.svg',group:'Gemini Models'},
+  ];
+  const KIND = {'5h':'5 h','weekly':'Semanal','monthly':'Mensual'};
+  const DOW = ['dom','lun','mar','mié','jue','vie','sáb'];
+  const MON = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const pad = n => String(n).padStart(2,'0');
+  const hm = ms => { const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+  const dayKey = ms => { const d=new Date(ms); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5); };
+  function whenLbl(ms){
+    const diff = dayKey(ms)-dayKey(Date.now());
+    const day = diff===0 ? 'hoy' : diff===1 ? 'mañana' : DOW[new Date(ms).getDay()];
+    return day+' '+hm(ms);
+  }
+  function dur(ms){
+    const m = Math.max(0,Math.round(ms/60000));
+    const d = Math.floor(m/1440), h = Math.floor(m%1440/60), mi = m%60;
+    if (d>0) return d+' d '+h+' h';
+    if (h>0) return h+' h '+pad(mi)+' min';
+    return mi+' min';
+  }
+  function age(ms){
+    const s = Math.max(0,Math.round((Date.now()-ms)/1000));
+    if (s<60) return s+' s';
+    if (s<3600) return Math.round(s/60)+' min';
+    const h=Math.floor(s/3600), m=Math.round(s%3600/60);
+    return h+' h'+(m?' '+m+' min':'');
+  }
+  const dec = x => (Math.round(x*10)/10).toString().replace('.',',');
+  const levelOf = rem => rem<20 ? 'crit' : rem<50 ? 'warn' : 'ok';
+  const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const paceKey = w => w.group ? w.kind+':'+w.group : w.kind;
+  const cd = t => `<span class="cd" data-cd="${t}">(${dur(t-Date.now())})</span>`;
+  const ageEl = (t,cls) => `<span${cls?` class="${cls}"`:''} data-age="${t}">${age(t)}</span>`;
+
+  function shortErr(e){
+    let s = e==null ? 'error' : typeof e==='string' ? e : (e.code!=null&&e.message ? e.code+' · '+e.message : e.message || e.code || JSON.stringify(e));
+    s = String(s).replace(/\s+/g,' ').trim();
+    return s.length>42 ? s.slice(0,41)+'…' : s;
+  }
+
+  function analyse(p,c){
+    const ws = (p.windows||[]).filter(w=>w.kind!=='mcp' && (!c.group || w.group===c.group));
+    const crit = ws.find(w=>w.kind==='5h') || ws[0] || null;
+    const other = ws.find(w=>w!==crit) || null;
+    return {crit,other};
+  }
+
+  function paceHtml(p,w){
+    const pc = p.pace && p.pace[paceKey(w)];
+    if (!pc) return '';
+    switch(pc.verdict){
+      case 'se_agota': return pc.projected_exhaust_at ? `<span class="c-crit">se agota ${whenLbl(Date.parse(pc.projected_exhaust_at))}</span>` : '';
+      case 'sobre_ritmo': return pc.ratio!=null ? `<span class="c-warn">${dec(pc.ratio)}× sobre ritmo</span>` : '';
+      case 'bajo_ritmo': return `<span class="c-ok">alcanza</span>`;
+      default: return '';
+    }
+  }
+
+  function renderRow(c,S){
+    const p = (S.providers||{})[c.id] || {status:'error',error:'sin datos',windows:[],fetched_at:null};
+    const a = analyse(p,c);
+    const err = p.status==='error';
+    const fT = p.fetched_at ? Date.parse(p.fetched_at) : NaN;
+    const hasAge = !isNaN(fT);
+    const logo = c.logo ? `<img class="logo" src="${c.logo}" alt="">` : `<div class="mono-badge">${c.mono}</div>`;
+    const plan = p.plan ? `<span class="plan">${esc(p.plan)}</span>` : '';
+    const subAge = hasAge ? ageEl(fT, err?'c-crit':p.status==='stale'?'c-warn':'') : '';
+    const dotCls = ['ok','stale','error'].includes(p.status) ? p.status : 'error';
+    const name = `<div><div class="nm">${c.name}</div><div class="sub">${plan}<span class="dot ${dotCls}"></span>${subAge}</div></div>`;
+
+    const w = a.crit;
+    if (!w){ // sin ventanas (error sin último valor bueno): ningún número, nunca 0%
+      const msg = err ? `<span class="errtag">ERROR</span> <span class="c-crit">${esc(shortErr(p.error))}</span>` : '<span class="c-dim">sin datos</span>';
+      const big = `<div class="big"><div class="num c-dim idle">sin datos</div><div class="lbl">&nbsp;</div></div>`;
+      const mid = `<div class="mid"><div class="msg"><span class="t">${msg}</span></div><div class="bar"></div><div class="msg2"></div></div>`;
+      return `<div class="row ${err?'error':''}" style="--accent:${c.accent}">${logo}${name}${big}${mid}<div class="oth"></div></div>`;
+    }
+    const idle = w.state==='idle';
+    const rem = Math.min(100,Math.max(0,100-w.used_pct));
+    const lvl = idle ? 'dim' : levelOf(rem);
+    const big = idle
+      ? `<div class="big"><div class="num c-dim idle">sin iniciar</div><div class="lbl">${KIND[w.kind]||w.kind}</div></div>`
+      : `<div class="big"><div class="num c-${lvl}">${Math.round(rem)}<small>%</small></div><div class="lbl">${KIND[w.kind]||w.kind} rest.</div></div>`;
+
+    const lo = a.other;
+    const blocked = !err && lo && lo.state==='exhausted' && lo.resets_at;
+    let msg, sub2='';
+    if (err) {
+      msg = `<span class="errtag">ERROR</span> <span class="c-crit">${esc(shortErr(p.error))}</span>`;
+      sub2 = hasAge ? `último valor bueno · hace ${ageEl(fT)}` : 'último valor bueno';
+    } else if (blocked) {
+      const t = Date.parse(lo.resets_at);
+      msg = `<span class="c-crit">bloqueada hasta ${whenLbl(t)}</span> ${cd(t)}`;
+    } else if (w.state==='exhausted' && w.resets_at) {
+      const t = Date.parse(w.resets_at);
+      msg = `<span class="c-crit">vuelve ${whenLbl(t)}</span> ${cd(t)}`;
+    } else {
+      msg = paceHtml(p,w);
+    }
+    const pc = p.pace && p.pace[paceKey(w)];
+    const expRem = pc && pc.expected_pct;
+    const tick = (expRem!=null && !err && w.state==='active') ? `<u style="left:calc(${100-expRem}% - 1px)"></u>` : '';
+    const bar = `<div class="bar">${idle?'':`<i class="c-${lvl}" style="width:${rem}%;background:currentColor"></i>`}${tick}</div>`;
+    const mid = `<div class="mid"><div class="msg"><span class="t">${msg||''}</span></div>${bar}<div class="msg2">${sub2}</div></div>`;
+
+    let oth='';
+    const o = a.other;
+    if (o){
+      const ol = KIND[o.kind]||o.kind;
+      const orem = Math.min(100,Math.max(0,100-o.used_pct));
+      const ex = o.state==='exhausted';
+      const opc = p.pace && p.pace[paceKey(o)];
+      const v = opc && opc.verdict;
+      const oc = (ex||v==='se_agota'||v==='agotada') ? 'crit' : v==='sobre_ritmo' ? 'warn' : v==='bajo_ritmo' ? 'ok' : levelOf(orem);
+      const r = ex ? (o.resets_at ? `<span class="c-crit">vuelve ${whenLbl(Date.parse(o.resets_at))}</span>` : '') : (o.resets_at ? 'reinicia '+whenLbl(Date.parse(o.resets_at)) : '');
+      oth = `<div class="oth"><div class="l">${ol}</div><div class="v c-${oc}">${Math.round(orem)}%</div><div class="r">${r}</div></div>`;
+    } else oth = '<div class="oth"></div>';
+    return `<div class="row ${err?'error':''} ${blocked?'blocked':''}" style="--accent:${c.accent}">${logo}${name}${big}${mid}${oth}</div>`;
+  }
+
+  // ── DOM base: cabecera fija (se actualiza en tick) + filas (se reconstruyen por fetch) ──
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="hdr mono"><div class="date" id="h-date"></div>
+    <div class="clock"><span id="h-hm"></span><span id="h-s" style="font-size:calc(11 * var(--u));opacity:.7"></span></div>
+    <div class="fresh" id="h-fresh"><span class="dot" id="h-dot"></span><span id="h-txt"></span><button id="qr-btn" class="qr-btn" type="button" title="Abrir en el teléfono (QR)" aria-label="Mostrar código QR para abrir en el teléfono"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><!-- Marcador de esquina TL --><path d="M1.5 5.5V1.5H5.5" /><!-- Marcador de esquina TR --><path d="M10.5 1.5H14.5V5.5" /><!-- Marcador de esquina BL --><path d="M1.5 10.5V14.5H5.5" /><!-- Detalles internos (píxeles QR) --><path d="M7 1.5h1M7 3h1M8 5h1M5 7v1M7 7h1v1M9 7h1M11 7v1M13 7v1M7 9h1M10 9h1M3 9v1M12 9v1M7 11h1M9 11h1M11 11h1M13 11h1M7 13h1M9 13h1M12 13v1" stroke-width="1.6" /></svg></button></div></div>
+    <div class="rows" id="rows"><div class="nodata">Cargando…</div></div>`;
+  const $ = id => document.getElementById(id);
+
+  let state = null, failing = false;
+
+  function tick(){
+    const now = Date.now(), d = new Date(now);
+    $('h-date').textContent = DOW[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()];
+    $('h-hm').textContent = hm(now);
+    $('h-s').textContent = ':'+pad(d.getSeconds());
+    const dot = $('h-dot'), txt = $('h-txt');
+    if (failing){
+      dot.className = 'dot error'; txt.className = 'warn'; txt.textContent = 'sin conexión con el colector';
+    } else if (state && state.generated_at){
+      const g = now - Date.parse(state.generated_at);
+      dot.className = 'dot '+(g>15*60000 ? 'error' : g>=10*60000 ? 'stale' : 'ok');
+      txt.className = ''; txt.textContent = 'datos de hace '+age(Date.parse(state.generated_at));
+    } else { dot.className = 'dot'; txt.textContent = ''; }
+    document.querySelectorAll('[data-cd]').forEach(e=>{ e.textContent = '('+dur(+e.dataset.cd-now)+')'; });
+    document.querySelectorAll('[data-age]').forEach(e=>{ e.textContent = age(+e.dataset.age); });
+  }
+
+  function render(){
+    $('rows').innerHTML = state
+      ? CFG.map(c=>renderRow(c,state)).join('')
+      : '<div class="nodata">Sin datos. ¿Está corriendo cuota? (cuota doctor)</div>';
+    tick();
+  }
+
+  async function load(){
+    const ctl = new AbortController();
+    const to = setTimeout(()=>ctl.abort(), TIMEOUT_MS);
+    try {
+      const r = await fetch(STATE_URL, {cache:'no-store', signal:ctl.signal});
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      const j = await r.json();
+      if (!j || typeof j.providers!=='object' || !j.providers) throw new Error('formato');
+      state = j; failing = false;
+    } catch(e){
+      failing = true;
+    } finally { clearTimeout(to); }
+    render();
+  }
+
+/* ── Modal QR: abre el HUD en el teléfono desde la misma red Wi-Fi ───────────
+       El QR codifica location.origin + '/index.html' (la URL por la que se cargó
+       esta página). Se genera perezosamente al primer apertura y es
+       idempotente: reabrir no duplica ni regenera el QR.                          */
+    (() => {
+      const elOverlay = document.getElementById('qr-overlay');
+      const elBtn     = document.getElementById('qr-btn');
+      const elClose   = document.getElementById('qr-close');
+      const elBox     = document.getElementById('qr-box');
+      const elUrl     = document.getElementById('qr-url');
+      if (!elOverlay || !elBtn || !elBox) return; // sin nodos → no-op silencioso
+
+      const phoneUrl = location.origin + '/index.html';
+      let rendered = false; // guarda: ya generamos el QR en este <span>
+
+      const renderQR = () => {
+        if (rendered || typeof QRCode === 'undefined') return;
+        elBox.textContent = ''; // limpia previos por si acaso
+        new QRCode(elBox, {
+          text: phoneUrl,
+          width: 240, height: 240,
+          colorDark: '#0a0a0a', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M,
+        });
+        rendered = true;
+      };
+
+      const open = () => {
+        elOverlay.classList.add('is-open');
+        renderQR();
+        elClose.focus();
+      };
+      const close = () => elOverlay.classList.remove('is-open');
+
+      elBtn.addEventListener('click', open);
+      elClose.addEventListener('click', close);
+      elOverlay.addEventListener('click', (e) => { if (e.target === elOverlay) close(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && elOverlay.classList.contains('is-open')) close();
+      });
+      elUrl.textContent = phoneUrl;
+    })();
+
+  tick(); setInterval(tick,1000);
+  load(); setInterval(load,REFRESH_MS);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:42.177422+00:00",
+    "http_status": null,
+    "source": "~/.codex/sessions/*/*/*/rollout-*.jsonl (newest token_count line)"
+  },
+  "body": {
+    "timestamp": "2026-09-28T21:06:40.865Z",
+    "ordinal": 115,
+    "type": "event_msg",
+    "payload": {
+      "type": "token_count",
+      "info": {
+        "total_token_usage": {
+          "input_tokens": 575757,
+          "cached_input_tokens": 547840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 11456,
+          "reasoning_output_tokens": 9707,
+          "total_tokens": 587213
+        },
+        "last_token_usage": {
+          "input_tokens": 63874,
+          "cached_input_tokens": 58624,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 4581,
+          "reasoning_output_tokens": 4472,
+          "total_tokens": 68455
+        },
+        "model_context_window": 258400
+      },
+      "rate_limits": {
+        "limit_id": "codex",
+        "limit_name": null,
+        "primary": null,
+        "secondary": null,
+        "credits": null,
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": null,
+        "rate_limit_reached_type": null
+      }
+    }
+  }
+}

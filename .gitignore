@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.venv/
+.pytest_cache/
+.ruff_cache/
+# SwiftPM / app bundles
+.build/
+dist/
+# Tooling
+.playwright-mcp/
+# Secrets and backups
+.env*
+*.key
+*.bak
+# OS
+.DS_Store
+# Panel: local symlink to the collector state
+panel/data/

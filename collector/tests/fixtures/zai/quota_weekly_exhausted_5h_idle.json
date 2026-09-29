@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:17.127332+00:00",
+    "http_status": 200,
+    "source": "GET https://api.z.ai/api/monitor/usage/quota/limit"
+  },
+  "body": {
+    "code": 200,
+    "msg": "Operation successful",
+    "data": {
+      "limits": [
+        {
+          "type": "TIME_LIMIT",
+          "unit": 5,
+          "number": 1,
+          "usage": 100,
+          "currentValue": 0,
+          "remaining": 100,
+          "percentage": 0,
+          "nextResetTime": 1792634845999,
+          "usageDetails": [
+            {
+              "modelCode": "search-prime",
+              "usage": 0
+            },
+            {
+              "modelCode": "web-reader",
+              "usage": 0
+            },
+            {
+              "modelCode": "zread",
+              "usage": 0
+            }
+          ]
+        },
+        {
+          "type": "TOKENS_LIMIT",
+          "unit": 3,
+          "number": 5,
+          "percentage": 0
+        },
+        {
+          "type": "TOKENS_LIMIT",
+          "unit": 6,
+          "number": 1,
+          "percentage": 100,
+          "nextResetTime": 1790734045971
+        }
+      ],
+      "level": "lite"
+    },
+    "success": true
+  }
+}

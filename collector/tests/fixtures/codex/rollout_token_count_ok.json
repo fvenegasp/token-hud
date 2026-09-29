@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:35:27.843180+00:00",
+    "http_status": null,
+    "source": "~/.codex/sessions/**/rollout-*.jsonl (último token_count con ventanas pobladas)"
+  },
+  "body": {
+    "timestamp": "2026-09-28T13:28:17.238Z",
+    "type": "event_msg",
+    "payload": {
+      "type": "token_count",
+      "rate_limits": {
+        "limit_id": "codex",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 82.0,
+          "window_minutes": 300,
+          "resets_at": 1790612263
+        },
+        "secondary": {
+          "used_percent": 100.0,
+          "window_minutes": 10080,
+          "resets_at": 1791058981
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "0"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "plus",
+        "rate_limit_reached_type": null
+      }
+    }
+  }
+}

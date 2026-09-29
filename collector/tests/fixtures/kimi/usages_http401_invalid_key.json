@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:41.069406+00:00",
+    "http_status": 401,
+    "source": "GET https://api.kimi.com/coding/v1/usages (Bearer invalid-key)"
+  },
+  "body": {
+    "error": {
+      "message": "The API Key appears to be invalid or may have expired. Please verify your credentials and try again.",
+      "type": "invalid_authentication_error"
+    }
+  }
+}

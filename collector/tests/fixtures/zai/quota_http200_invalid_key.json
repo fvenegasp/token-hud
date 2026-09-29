@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "captured_at": "2026-09-29T17:34:42.148587+00:00",
+    "http_status": 200,
+    "source": "GET https://api.z.ai/api/monitor/usage/quota/limit (invalid-key)"
+  },
+  "body": {
+    "code": 401,
+    "msg": "token expired or incorrect",
+    "success": false
+  }
+}
