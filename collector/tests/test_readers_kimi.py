@@ -178,3 +178,33 @@ def test_bad_limits_detail_is_shape_error(fx, limit, used):
     f["body"]["limits"][0]["detail"].update(limit=limit, used=used)
     r = kimi.parse(raw_of(f), now=NOW)
     assert (r.status, r.error.code, r.windows) == ("error", "shape", ())
+
+
+def test_detail_with_remaining_only_real_shape(fx):
+    f = fx("kimi", "usages_ok_remaining")
+    r = kimi.parse(raw_of(f), now=utc(2026, 9, 30, 3, 45))
+    w = by_kind(r)
+    assert (r.status, r.note) == ("ok", None)
+    assert (w["5h"].used_pct, w["5h"].state) == (0.0, "active")
+    assert w["5h"].resets_at.replace(microsecond=0) == utc(2026, 9, 30, 6, 3, 10)
+    assert w["monthly"].used_pct == pytest.approx(27.85)
+
+
+def test_remaining_partial_use_and_used_wins_over_remaining(fx):
+    f = fx("kimi", "usages_ok_remaining")
+    f["body"]["limits"][0]["detail"]["remaining"] = "40"
+    assert by_kind(kimi.parse(raw_of(f), now=NOW))["5h"].used_pct == 60.0
+    f["body"]["limits"][0]["detail"]["used"] = "10"
+    assert by_kind(kimi.parse(raw_of(f), now=NOW))["5h"].used_pct == 10.0
+
+
+@pytest.mark.parametrize("remaining", ["x", "150", "-1", None])
+def test_neither_used_nor_valid_remaining_is_shape_error(fx, remaining):
+    f = fx("kimi", "usages_ok_remaining")
+    d = f["body"]["limits"][0]["detail"]
+    if remaining is None:
+        del d["remaining"]
+    else:
+        d["remaining"] = remaining
+    r = kimi.parse(raw_of(f), now=NOW)
+    assert (r.status, r.error.code, r.windows) == ("error", "shape", ())

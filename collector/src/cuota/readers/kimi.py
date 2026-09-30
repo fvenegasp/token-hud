@@ -35,9 +35,11 @@ def _limits_5h(body: Any) -> Window | None:
             continue
         detail = base.mapping(entry.get("detail"), "limits.detail")
         try:
-            used_n, limit_n = float(detail["used"]), float(detail["limit"])
+            limit_n = float(detail["limit"])
+            # `used` when present; the unused-window shape only carries `remaining`
+            used_n = float(detail["used"]) if "used" in detail else limit_n - float(detail["remaining"])
         except (KeyError, TypeError, ValueError):
-            raise base.shape_error("limits.detail used/limit not numeric") from None
+            raise base.shape_error("limits.detail used/remaining/limit not numeric") from None
         if not limit_n > 0 or used_n < 0 or used_n > limit_n:
             raise base.shape_error("limits.detail used/limit out of range")
         used = round(used_n / limit_n * 100, 6)
