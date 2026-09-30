@@ -9,12 +9,14 @@ It reads the usage numbers each provider already computes. There is no proxy in 
 
 ![Menu bar](menubar/mockup/menubar-dark.png)
 
+![Sidebar (mockup)](docs/images/sidebar-horizontal.png)
+
 ## Components
 
 | Component | What it is | Path |
 |---|---|---|
 | Collector CLI `cuota` | Queries providers every 5 min, writes `~/.cache/cuota/state.json`; table, `--json`, `--line`, `watch`, `doctor` views | [`collector/`](collector/README.md) |
-| Menu bar app | Native macOS app: logo + two stacked percentages per provider, menu with pace and freshness | [`menubar/`](menubar/README.md) |
+| Menu bar app | Native macOS app: menu bar items or docked sidebar mode, logo + two stacked percentages per provider, menu with pace and freshness | [`menubar/`](menubar/README.md) |
 | Web panel | Single-file page for a small secondary display (480×320) or a phone | [`panel/`](panel/README.md) |
 
 All views only read `state.json`; only the collector talks to providers. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
