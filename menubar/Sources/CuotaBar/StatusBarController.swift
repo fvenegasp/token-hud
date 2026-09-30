@@ -3,7 +3,9 @@ import Darwin
 import CuotaCore
 
 /// Un NSStatusItem por proveedor, un menú compartido que se reconstruye en cada refresco.
-/// Datos: ~/.cache/cuota/state.json (vigilado por rename atómico + timer de respaldo).
+/// Coordinador de dos modos excluyentes: "Barra de menú" (ítems) y "Barra lateral"
+/// (panel flotante, sin ítems). Datos: ~/.cache/cuota/state.json (vigilado por
+/// rename atómico + timer de respaldo).
 @MainActor
 final class StatusBarController {
     private var statusItems: [String: NSStatusItem] = [:]
@@ -17,6 +19,10 @@ final class StatusBarController {
     private var textTimer: Timer?
     private var collectRunning = false
 
+    private let settings = DisplayModeSettings.shared
+    private var sidebar: SidebarPanel?
+    private var hotKey: HotKeyRegistrar?
+
     private var home: String { NSHomeDirectory() }
     private var statePath: String { home + "/.cache/cuota/state.json" }
     private var stateDirectory: String { home + "/.cache/cuota" }
@@ -24,12 +30,7 @@ final class StatusBarController {
 
     func start() {
         menu.autoenablesItems = false
-        // NSStatusBar coloca cada ítem nuevo a la IZQUIERDA del anterior: crear en orden inverso.
-        for entry in Presenter.order.reversed() {
-            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            item.menu = menu
-            statusItems[entry.id] = item
-        }
+        installStatusItems()
         reload()
         startWatching()
         // Respaldo por si el watch pierde un evento; y textos relativos ("hace N min") frescos.
@@ -37,6 +38,53 @@ final class StatusBarController {
                                              selector: #selector(fallbackTimerFired), userInfo: nil, repeats: true)
         textTimer = Timer.scheduledTimer(timeInterval: 30, target: self,
                                          selector: #selector(textTimerFired), userInfo: nil, repeats: true)
+        // Modo persistido (por defecto "Barra de menú") + atajo global ⌥⌘L.
+        settings.onChange = { [weak self] in self?.applyMode() }
+        applyMode()
+        hotKey = HotKeyRegistrar.toggleDisplayMode { [weak self] in
+            guard let self else { return }
+            self.settings.mode = self.settings.mode == .menuBar ? .sidebar : .menuBar
+        }
+        hotKey?.register()
+    }
+
+    /// NSStatusBar coloca cada ítem nuevo a la IZQUIERDA del anterior: crear en orden inverso.
+    private func installStatusItems() {
+        guard statusItems.isEmpty else { return }
+        for entry in Presenter.order.reversed() {
+            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            item.menu = menu
+            statusItems[entry.id] = item
+        }
+    }
+
+    private func removeStatusItems() {
+        for item in statusItems.values { NSStatusBar.system.removeStatusItem(item) }
+        statusItems.removeAll()
+    }
+
+    /// Modos excluyentes: al activar la barra lateral no hay ítems de barra de menú;
+    /// al volver, se recrean en el mismo orden.
+    private func applyMode() {
+        if settings.mode == .sidebar {
+            removeStatusItems()
+            if sidebar == nil {
+                let panel = SidebarPanel()
+                (panel.contentView as? SidebarContentView)?.delegate = self
+                if let presentation { panel.update(presentation) }
+                panel.applyPosition()
+                panel.orderFrontRegardless()
+                sidebar = panel
+            } else {
+                sidebar?.applySize()
+            }
+        } else {
+            sidebar?.orderOut(nil)
+            sidebar = nil
+            installStatusItems()
+            applyPresentation()
+        }
+        rebuildMenu()
     }
 
     /// QA: escribe <dir>/<provider>.png (2×) con el state.json actual, sin crear ítems.
@@ -59,6 +107,8 @@ final class StatusBarController {
         textTimer?.invalidate()
         watchSource?.cancel()
         watchSource = nil
+        hotKey?.unregister()
+        hotKey = nil
     }
 
     // MARK: - Datos
@@ -75,6 +125,7 @@ final class StatusBarController {
     private func render() {
         presentation = Presenter.present(lastLoad, now: Date(), timeZone: .current)
         applyPresentation()
+        if let presentation { sidebar?.update(presentation) }
         rebuildMenu()
     }
 
@@ -144,6 +195,17 @@ final class StatusBarController {
             }
         }
         menu.addItem(.separator())
+        menu.addItem(sectionHeader("Mostrar en", hint: "⌥⌘L alterna"))
+        menu.addItem(modeItem("Barra de menú", mode: .menuBar))
+        menu.addItem(modeItem("Barra lateral", mode: .sidebar))
+        menu.addItem(sectionHeader("Borde de la barra lateral"))
+        menu.addItem(edgeItem("Derecho", edge: .right))
+        menu.addItem(edgeItem("Izquierdo", edge: .left))
+        menu.addItem(sectionHeader("Tamaño de la barra lateral"))
+        menu.addItem(sizeItem("Compacto", size: .compact))
+        menu.addItem(sizeItem("Normal", size: .normal))
+        menu.addItem(sizeItem("Grande", size: .large))
+        menu.addItem(.separator())
         menu.addItem(actionItem(title: "Abrir panel", action: #selector(openPanel)))
         menu.addItem(actionItem(title: "Actualizar ahora", action: #selector(updateNow)))
         menu.addItem(.separator())
@@ -159,21 +221,50 @@ final class StatusBarController {
     }
 
     private func headerItem(for provider: ProviderPresentation) -> NSMenuItem {
-        let header = NSMutableAttributedString(
-            string: provider.name,
-            attributes: [
-                .font: NSFont.boldSystemFont(ofSize: 13),
-                .foregroundColor: provider.blocked ? NSColor.secondaryLabelColor : NSColor.labelColor,
-            ])
-        if let plan = provider.plan {
-            header.append(NSAttributedString(
-                string: " · \(plan)",
-                attributes: [
-                    .font: NSFont.systemFont(ofSize: 13),
-                    .foregroundColor: NSColor.secondaryLabelColor,
-                ]))
+        textItem(PresentationText.header(for: provider))
+    }
+
+    /// Cabecera de sección informativa (p. ej. "Mostrar en"), con pista a la derecha.
+    private func sectionHeader(_ title: String, hint: String? = nil) -> NSMenuItem {
+        let text = NSMutableAttributedString(
+            string: title,
+            attributes: [.font: NSFont.systemFont(ofSize: 11),
+                         .foregroundColor: NSColor.secondaryLabelColor])
+        if let hint {
+            text.append(NSAttributedString(
+                string: "  ·  \(hint)",
+                attributes: [.font: NSFont.menuBarFont(ofSize: 9),
+                             .foregroundColor: NSColor.tertiaryLabelColor]))
         }
-        return textItem(header)
+        let item = textItem(text)
+        item.isEnabled = false
+        return item
+    }
+
+    /// Ítem exclusivo de modo de visualización con marca en el vigente.
+    private func modeItem(_ title: String, mode: DisplayMode) -> NSMenuItem {
+        let item = actionItem(title: title, action: #selector(selectDisplayMode))
+        item.representedObject = mode.rawValue
+        item.state = settings.mode == mode ? .on : .off
+        return item
+    }
+
+    /// Borde de la barra lateral: solo habilitado en ese modo.
+    private func edgeItem(_ title: String, edge: SidebarEdge) -> NSMenuItem {
+        let item = actionItem(title: title, action: #selector(selectSidebarEdge))
+        item.representedObject = edge.rawValue
+        item.state = settings.edge == edge ? .on : .off
+        item.isEnabled = settings.mode == .sidebar
+        return item
+    }
+
+    /// Tamaño de la barra lateral: solo habilitado en ese modo.
+    private func sizeItem(_ title: String, size: SidebarSize) -> NSMenuItem {
+        let item = actionItem(title: title, action: #selector(selectSidebarSize))
+        item.representedObject = size.rawValue
+        item.state = settings.sidebarSize == size ? .on : .off
+        item.isEnabled = settings.mode == .sidebar
+        return item
     }
 
     private func actionItem(title: String, action: Selector, keyEquivalent: String = "") -> NSMenuItem {
@@ -183,23 +274,7 @@ final class StatusBarController {
     }
 
     private func attributed(from segments: [LineSegment], font: NSFont) -> NSAttributedString {
-        let result = NSMutableAttributedString()
-        for segment in segments {
-            result.append(NSAttributedString(
-                string: segment.text,
-                attributes: [.font: font, .foregroundColor: color(for: segment.role)]))
-        }
-        return result
-    }
-
-    private func color(for role: ColorRole) -> NSColor {
-        switch role {
-        case .normal: return .labelColor
-        case .secondary: return .secondaryLabelColor
-        case .ok: return .systemGreen
-        case .warn: return .systemOrange
-        case .danger: return .systemRed
-        }
+        PresentationText.line(segments, font: font)
     }
 
     // MARK: - Acciones
@@ -228,5 +303,43 @@ final class StatusBarController {
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    // MARK: - Modo de visualización (menú y barra lateral)
+
+    @objc private func selectDisplayMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = DisplayMode(rawValue: raw) else { return }
+        settings.mode = mode
+    }
+
+    @objc private func selectSidebarEdge(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let edge = SidebarEdge(rawValue: raw) else { return }
+        settings.edge = edge
+    }
+
+    @objc private func selectSidebarSize(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let size = SidebarSize(rawValue: raw) else { return }
+        settings.sidebarSize = size
+    }
+}
+
+// MARK: - SidebarDelegate (menú, panel web y datos para el globo)
+
+extension StatusBarController: SidebarDelegate {
+    func openMenu(in view: NSView, at point: NSPoint) {
+        // El mismo menú de Token HUD, posicionado junto a la barra lateral.
+        rebuildMenu()
+        menu.popUp(positioning: nil, at: point, in: view)
+    }
+
+    func openWebPanel() {
+        openPanel()
+    }
+
+    func presentation(for providerID: String) -> ProviderPresentation? {
+        presentation?.providers.first { $0.id == providerID }
     }
 }

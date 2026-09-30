@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Barra lateral de cuotas (mockup)</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#1b1d22;color:#ddd;font:13px -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;padding:16px 24px 40px}
+body.shot{padding:0}body.shot h1,body.shot .lead,body.shot h2{display:none}body.shot .wrap+.wrap{margin-top:12px}
+h2{font:600 12px -apple-system,Helvetica,sans-serif;color:#9aa0aa;letter-spacing:.04em;text-transform:uppercase;margin:22px 0 8px}
+/* MacBook Pro 14": 1512 × 982 pt, notch ≈ x 656–856 */
+.scene{position:relative;width:1512px;height:982px;overflow:hidden;-webkit-font-smoothing:antialiased}
+.scene.dark{background:linear-gradient(135deg,#1d2b4a,#3b2a55 55%,#12141c)}
+.scene.light{background:linear-gradient(135deg,#f4e6c8,#f1b98c 50%,#d7e6f3)}
+/* ---- menu bar (37 pt con notch) ---- */
+.bar{position:absolute;left:0;right:0;top:0;height:37px;display:flex;align-items:center;padding:0 8px;font:500 13px -apple-system,"SF Pro Text",Helvetica,sans-serif}
+.dark .bar{background:rgba(20,20,24,.62);color:#fff;backdrop-filter:blur(20px)}
+.light .bar{background:rgba(245,245,247,.55);color:#000;backdrop-filter:blur(20px)}
+.apps{display:flex;gap:18px;padding-left:12px}.apps b{font-weight:700}
+.right{margin-left:auto;display:flex;align-items:center}
+.notch{position:absolute;left:656px;top:0;width:200px;height:32px;background:#000;border-radius:0 0 14px 14px;z-index:5}
+.sys{display:flex;align-items:center;height:24px;padding:0 7px}
+.sys svg{height:13px;width:auto;fill:currentColor}
+.dot{width:15px;height:15px;border-radius:4px;border:1.6px solid currentColor;opacity:.9}
+.clock{padding:0 8px 0 10px;white-space:nowrap}
+.item{position:relative;display:flex;align-items:center;gap:4px;height:24px;padding:0 6px;border-radius:5px}
+.item.hid{visibility:hidden}
+.item.open{background:rgba(255,255,255,.22)}.light .item.open{background:rgba(0,0,0,.14)}
+.item .lg svg{width:14px;height:14px;display:block}
+.item .n{display:flex;flex-direction:column;font:600 10px/10px ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.2px;text-align:right;min-width:23px}
+.item.blocked,.row.blocked{opacity:.45}
+.item.stale,.row.stale{opacity:.72}
+/* ---- barra lateral (NSPanel) ---- */
+.side{position:absolute;width:60px;padding:4px 0 6px;border-radius:12px;z-index:3}
+.dark .side{background:rgba(38,38,42,.66);color:#f2f2f4;backdrop-filter:blur(26px) saturate(1.7);box-shadow:0 0 0 .5px rgba(255,255,255,.24),0 8px 28px rgba(0,0,0,.45)}
+.light .side{background:rgba(246,246,248,.66);color:#1d1d1f;backdrop-filter:blur(26px) saturate(1.7);box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 8px 28px rgba(0,0,0,.2)}
+.grip{height:12px;display:grid;place-items:center;margin:0 3px;border-radius:6px}.grip.on{background:rgba(255,255,255,.18)}.grip.on i{opacity:.7}.grip i{width:20px;height:4px;border-radius:2px;background:currentColor;opacity:.3}
+.row{position:relative;padding:7px 7px 8px;margin:0 3px;border-radius:7px}
+.row+.row::before{content:"";position:absolute;left:5px;right:5px;top:0;height:.5px;background:currentColor;opacity:.2}
+.row.hov{background:rgba(255,255,255,.14)}.light .row.hov{background:rgba(0,0,0,.08)}
+.row.hov::before,.row.hov+.row::before{opacity:0}
+.row .lg{display:block;width:15px;height:15px;margin:0 auto 5px}
+.ln{display:flex;align-items:baseline;justify-content:space-between;line-height:12px}
+.ln u{text-decoration:none;font:600 8px -apple-system,Helvetica,sans-serif;opacity:.5;letter-spacing:.02em}
+.ln b{font:600 11px ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.mt{height:2.5px;border-radius:2px;margin:2px 0 4px;background:rgba(128,128,128,.28);overflow:hidden}
+.mt i{display:block;height:100%;border-radius:2px}
+.mt.zero{background:rgba(255,98,89,.35)}.light .mt.zero{background:rgba(209,38,27,.28)}
+.c-ok{background:#4cd964}.c-wr{background:#ffb340}.c-bl{background:#ff6259}.c-nd{background:#8e8e93}
+.light .c-ok{background:#1b8a37}.light .c-wr{background:#c77800}.light .c-bl{background:#d1261b}
+.row .bad{position:absolute;right:9px;top:6px;width:10px;height:10px;border-radius:50%;background:#ff6259;display:grid;place-items:center;font:800 8px/1 -apple-system,Helvetica,sans-serif;color:#fff}
+/* ---- menú / globo ---- */
+.menu,.pop{position:absolute;padding:6px;border-radius:10px;font:13px/1.3 -apple-system,"SF Pro Text",Helvetica,sans-serif;z-index:4}
+.menu{top:40px;width:410px}.pop{width:400px}
+.dark .menu,.dark .pop{background:rgba(44,44,48,.86);color:#f2f2f4;backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 0 0 .5px rgba(255,255,255,.22),0 10px 34px rgba(0,0,0,.5)}
+.light .menu,.light .pop{background:rgba(238,238,240,.86);color:#1d1d1f;backdrop-filter:blur(30px) saturate(1.6);box-shadow:0 0 0 .5px rgba(0,0,0,.22),0 10px 34px rgba(0,0,0,.28)}
+.pop::after{content:"";position:absolute;right:-6px;top:var(--ay,30px);width:12px;height:12px;transform:rotate(45deg);background:inherit;border-radius:2px;box-shadow:.5px -.5px 0 0 rgba(255,255,255,.22);clip-path:polygon(0 0,100% 0,100% 100%)}
+.prov{padding:5px 10px 6px;border-radius:5px}
+.prov .h{display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:1px}
+.prov .h svg{width:13px;height:13px}.prov .h .pl{font-weight:400;opacity:.6}
+.prov .r{font-size:12px;opacity:.85;font-variant-numeric:tabular-nums}.prov .r.m{opacity:.7}
+.prov.blocked .h{opacity:.55}
+.bl{color:#ff6259}.light .bl{color:#d1261b}.ok{color:#4cd964}.light .ok{color:#1b8a37}.wr{color:#ffb340}.light .wr{color:#b56a00}.er{color:#ff6259}
+.sep{height:1px;margin:5px 8px;background:rgba(128,128,128,.32)}
+.mi{position:relative;display:flex;justify-content:space-between;padding:4px 10px;border-radius:5px}
+.mi .k{opacity:.55;font-size:12px}
+.mi .c{display:inline-block;width:16px}.mi.sub{padding-left:26px}.mi.hd{opacity:.5;font-size:12px}
+.mi.hl{background:#0a63d8;color:#fff}.mi.hl .k{opacity:.8}
+.tag{position:absolute;right:100%;top:3px;margin-right:12px;white-space:nowrap;font:600 10px/1 -apple-system,Helvetica,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:3px 6px;border:1px dashed #f5a623;color:#f5a623;border-radius:4px;background:rgba(0,0,0,.35)}
+.light .tag{color:#b35c00;border-color:#b35c00;background:rgba(255,255,255,.75)}
+.tag.free{position:absolute;right:auto;margin:0;z-index:6}
+.note{position:absolute;left:24px;bottom:24px;font:12px/1.5 -apple-system,Helvetica,sans-serif;color:rgba(255,255,255,.88);background:rgba(0,0,0,.42);padding:10px 14px;border-radius:6px;max-width:520px}
+.note b{font-weight:600}.note ul{padding-left:16px}
+.light .note{color:#222;background:rgba(255,255,255,.62)}
+/* ventana de fondo: la barra flota sobre las apps */
+.win{position:absolute;left:760px;top:120px;width:720px;height:640px;border-radius:12px;overflow:hidden}
+.dark .win{background:#1f2024;box-shadow:0 0 0 .5px rgba(255,255,255,.14),0 20px 60px rgba(0,0,0,.5)}
+.light .win{background:#fbfbfd;box-shadow:0 0 0 .5px rgba(0,0,0,.14),0 20px 60px rgba(0,0,0,.2)}
+.win .tb{height:32px;display:flex;gap:8px;align-items:center;padding-left:12px;border-bottom:.5px solid rgba(128,128,128,.25)}
+.win .tb i{width:12px;height:12px;border-radius:50%;background:rgba(128,128,128,.45)}
+.win .ln2{height:9px;border-radius:4px;background:rgba(128,128,128,.18);margin:14px 20px 0}
+.ptr{position:absolute;width:18px;height:24px;z-index:7}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="l-claude" viewBox="0 0 24 24"><path fill="currentColor" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
+<symbol id="l-codex" viewBox="0 0 256 260"><path fill="currentColor" d="M239.184 106.203a64.716 64.716 0 0 0-5.576-53.103C219.452 28.459 191 15.784 163.213 21.74A65.586 65.586 0 0 0 52.096 45.22a64.716 64.716 0 0 0-43.23 31.36c-14.31 24.602-11.061 55.634 8.033 76.74a64.665 64.665 0 0 0 5.525 53.102c14.174 24.65 42.644 37.324 70.446 31.36a64.72 64.72 0 0 0 48.754 21.744c28.481.025 53.714-18.361 62.414-45.481a64.767 64.767 0 0 0 43.229-31.36c14.137-24.558 10.875-55.423-8.083-76.483Zm-97.56 136.338a48.397 48.397 0 0 1-31.105-11.255l1.535-.87 51.67-29.825a8.595 8.595 0 0 0 4.247-7.367v-72.85l21.845 12.636c.218.111.37.32.409.563v60.367c-.056 26.818-21.783 48.545-48.601 48.601Zm-104.466-44.61a48.345 48.345 0 0 1-5.781-32.589l1.534.921 51.722 29.826a8.339 8.339 0 0 0 8.441 0l63.181-36.425v25.221a.87.87 0 0 1-.358.665l-52.335 30.184c-23.257 13.398-52.97 5.431-66.404-17.803ZM23.549 85.38a48.499 48.499 0 0 1 25.58-21.333v61.39a8.288 8.288 0 0 0 4.195 7.316l62.874 36.272-21.845 12.636a.819.819 0 0 1-.767 0L41.353 151.53c-23.211-13.454-31.171-43.144-17.804-66.405v.256Zm179.466 41.695-63.08-36.63L161.73 77.86a.819.819 0 0 1 .768 0l52.233 30.184a48.6 48.6 0 0 1-7.316 87.635v-61.391a8.544 8.544 0 0 0-4.4-7.213Zm21.742-32.69-1.535-.922-51.619-30.081a8.39 8.39 0 0 0-8.492 0L99.98 99.808V74.587a.716.716 0 0 1 .307-.665l52.233-30.133a48.652 48.652 0 0 1 72.236 50.391v.205ZM88.061 139.097l-21.845-12.585a.87.87 0 0 1-.41-.614V65.685a48.652 48.652 0 0 1 79.757-37.346l-1.535.87-51.67 29.825a8.595 8.595 0 0 0-4.246 7.367l-.051 72.697Zm11.868-25.58 28.138-16.217 28.188 16.218v32.434l-28.086 16.218-28.188-16.218-.052-32.434Z"/></symbol>
+<symbol id="l-zai" viewBox="24 33 112 94"><path fill="currentColor" d="M82.771 33.208L75.0661 44.157C74.4609 45.0175 73.6581 45.7202 72.7251 46.2063C71.7922 46.6924 70.7562 46.9476 69.7043 46.9506H27.7104V33.1629L82.771 33.208Z"/><path fill="currentColor" d="M135.083 33.2075L68.9835 126.837H24.917L91.0167 33.2075H135.083Z"/><path fill="currentColor" d="M77.2741 126.837L85.024 115.843C85.6316 114.988 86.4359 114.292 87.3692 113.814C88.3025 113.336 89.3372 113.089 90.3859 113.095H132.335V126.612L77.2741 126.837Z"/></symbol>
+<symbol id="l-agy" viewBox="0 0 16 15"><path fill="currentColor" d="M14.0777 13.984C14.945 14.6345 16.2458 14.2008 15.0533 13.0084C11.476 9.53949 12.2349 0 7.79033 0C3.34579 0 4.10461 9.53949 0.527295 13.0084C-0.773543 14.3092 0.635692 14.6345 1.50293 13.984C4.86344 11.7076 4.64663 7.69664 7.79033 7.69664C10.934 7.69664 10.7172 11.7076 14.0777 13.984Z"/></symbol>
+<symbol id="l-kimi" viewBox="0 0 24 24"><text x="12" y="19.5" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-weight="800" font-size="21" fill="currentColor">K</text></symbol>
+</defs></svg>
+<h1 style="font:600 16px -apple-system,Helvetica,sans-serif;color:#fff">Mockup estático: barra lateral de cuotas (MacBook Pro 14", notch)</h1>
+<p class="lead" style="color:#9aa0aa;margin-top:4px">Datos: snapshot real de state.json (2026-09-29 20:53Z), reloj fijado a 20:55Z, hora de Santiago. Pantalla 1512 × 982 pt a 1×; captura a 2×. <code>?v=dark,hover,light,menu,error</code> (lista), <code>&amp;shot=1</code> sin títulos.</p>
+<div id="root"></div>
+<script id="snap" type="application/json">{
+  "schema_version": 1,
+  "generated_at": "2026-09-29T20:53:06Z",
+  "providers": {
+    "claude": {
+      "status": "ok",
+      "plan": null,
+      "source": "statusline",
+      "fetched_at": "2026-09-29T20:51:55Z",
+      "error": null,
+      "windows": [
+        {
+          "kind": "5h",
+          "group": null,
+          "used_pct": 32.0,
+          "resets_at": "2026-09-29T23:00:00Z",
+          "state": "active"
+        },
+        {
+          "kind": "weekly",
+          "group": null,
+          "used_pct": 30.0,
+          "resets_at": "2026-10-05T11:00:00Z",
+          "state": "active"
+        }
+      ],
+      "note": null,
+      "pace": {
+        "5h": {
+          "expected_pct": 57.7,
+          "ratio": 0.55,
+          "projected_exhaust_at": null,
+          "verdict": "bajo_ritmo"
+        },
+        "weekly": {
+          "expected_pct": 20.2,
+          "ratio": 1.49,
+          "projected_exhaust_at": "2026-10-03T02:05:11Z",
+          "verdict": "se_agota"
+        }
+      }
+    },
+    "codex": {
+      "status": "ok",
+      "plan": "plus",
+      "source": "app-server",
+      "fetched_at": "2026-09-29T20:53:06Z",
+      "error": null,
+      "windows": [
+        {
+          "kind": "5h",
+          "group": null,
+          "used_pct": 0.0,
+          "resets_at": "2026-09-30T01:53:08Z",
+          "state": "active"
+        },
+        {
+          "kind": "weekly",
+          "group": null,
+          "used_pct": 100.0,
+          "resets_at": "2026-10-03T20:23:01Z",
+          "state": "exhausted"
+        }
+      ],
+      "note": null,
+      "pace": {
+        "5h": {
+          "expected_pct": 0.0,
+          "ratio": null,
+          "projected_exhaust_at": null,
+          "verdict": "bajo_ritmo"
+        },
+        "weekly": {
+          "expected_pct": null,
+          "ratio": null,
+          "projected_exhaust_at": null,
+          "verdict": "agotada"
+        }
+      }
+    },
+    "kimi": {
+      "status": "ok",
+      "plan": null,
+      "source": "api",
+      "fetched_at": "2026-09-29T20:53:06Z",
+      "error": null,
+      "windows": [
+        {
+          "kind": "5h",
+          "group": null,
+          "used_pct": 0.0,
+          "resets_at": "2026-09-30T01:03:09Z",
+          "state": "active"
+        },
+        {
+          "kind": "monthly",
+          "group": null,
+          "used_pct": 21.56,
+          "resets_at": "2026-10-29T00:00:00Z",
+          "state": "active"
+        }
+      ],
+      "note": null,
+      "pace": {
+        "5h": {
+          "expected_pct": 16.7,
+          "ratio": 0.0,
+          "projected_exhaust_at": null,
+          "verdict": "bajo_ritmo"
+        },
+        "monthly": {
+          "expected_pct": 2.9,
+          "ratio": 7.43,
+          "projected_exhaust_at": null,
+          "verdict": "sobre_ritmo"
+        }
+      }
+    },
+    "zai": {
+      "status": "ok",
+      "plan": "lite",
+      "source": "api",
+      "fetched_at": "2026-09-29T20:53:06Z",
+      "error": null,
+      "windows": [
+        {
+          "kind": "mcp",
+          "group": null,
+          "used_pct": 0.0,
+          "resets_at": "2026-10-22T02:07:25Z",
+          "state": "active"
+        },
+        {
+          "kind": "5h",
+          "group": null,
+          "used_pct": 0.0,
+          "resets_at": null,
+          "state": "idle"
+        },
+        {
+          "kind": "weekly",
+          "group": null,
+          "used_pct": 100.0,
+          "resets_at": "2026-09-30T02:07:25Z",
+          "state": "exhausted"
+        }
+      ],
+      "note": null,
+      "pace": {
+        "5h": {
+          "expected_pct": null,
+          "ratio": null,
+          "projected_exhaust_at": null,
+          "verdict": "sin_datos"
+        },
+        "weekly": {
+          "expected_pct": null,
+          "ratio": null,
+          "projected_exhaust_at": null,
+          "verdict": "agotada"
+        }
+      }
+    },
+    "agy": {
+      "status": "ok",
+      "plan": null,
+      "source": "agy-cli",
+      "fetched_at": "2026-09-29T20:53:06Z",
+      "error": null,
+      "windows": [
+        {
+          "kind": "weekly",
+          "group": "Gemini Models",
+          "used_pct": 13.540685,
+          "resets_at": "2026-10-02T12:15:36Z",
+          "state": "active"
+        },
+        {
+          "kind": "5h",
+          "group": "Gemini Models",
+          "used_pct": 0.0,
+          "resets_at": "2026-09-30T01:53:13Z",
+          "state": "active"
+        }
+      ],
+      "note": null,
+      "pace": {
+        "weekly:Gemini Models": {
+          "expected_pct": 62.3,
+          "ratio": 0.22,
+          "projected_exhaust_at": null,
+          "verdict": "bajo_ritmo"
+        },
+        "5h:Gemini Models": {
+          "expected_pct": 0.0,
+          "ratio": null,
+          "projected_exhaust_at": null,
+          "verdict": "bajo_ritmo"
+        }
+      }
+    }
+  }
+}</script>
+<script>
+const S0=JSON.parse(document.getElementById('snap').textContent);
+const NOW=Date.parse('2026-09-29T20:55:00Z'), TZ='America/Santiago';
+const ORDER=[['claude','Claude','l-claude'],['codex','Codex','l-codex'],['kimi','Kimi','l-kimi'],['zai','GLM','l-zai'],['agy','Gemini','l-agy']];
+const PLAN={codex:'Plus',zai:'Lite',claude:'',kimi:'',agy:''};
+const fmt=(o)=>new Intl.DateTimeFormat('es-CL',{timeZone:TZ,...o}).format;
+const day=fmt({weekday:'short'}), hm=fmt({hour:'2-digit',minute:'2-digit',hour12:false}), ymd=fmt({year:'numeric',month:'2-digit',day:'2-digit'}), dm=fmt({day:'numeric',month:'short'});
+const cap=s=>s.replace('.','');
+function when(t){const d=new Date(t);if(ymd(d)===ymd(NOW))return 'hoy '+hm(d);
+  if(ymd(d)===ymd(NOW+864e5))return 'mañana '+hm(d);
+  const w=cap(day(d));return (Math.abs(t-NOW)<7*864e5? w:w+' '+cap(dm(d)))+' '+hm(d);}
+function dur(ms){const m=Math.round(ms/6e4),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mi=m%60;
+  return d?`${d} d ${h} h`:h?`${h} h ${mi} min`:`${mi} min`;}
+const ago=t=>{const m=Math.round((NOW-Date.parse(t))/6e4);return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`};
+const rem=w=>w?Math.max(0,Math.round(100-w.used_pct)):null;
+const win=(p,k)=>p.windows.find(w=>w.kind===k);
+const pace=(p,key)=>{const e=p.pace&&Object.entries(p.pace).find(([k])=>k===key||k.startsWith(key+':'));return e?e[1]:null};
+function model(id,p){
+  const second=id==='kimi'?'monthly':'weekly';
+  const w5=win(p,'5h'), w2=win(p,second);
+  const blocked=(w2&&w2.state==='exhausted')||(w5&&w5.state==='exhausted');
+  return {p,w5,w2,second,blocked,top:!w5||w5.state==='idle'?'—':rem(w5), bot:w2?rem(w2):'—',
+    stale:p.status==='stale', err:p.status==='error'};
+}
+function paceTxt(p,key){const v=pace(p,key);if(!v)return '';
+  if(v.verdict==='se_agota'&&v.projected_exhaust_at)return ` · <span class="bl">se agota ${when(Date.parse(v.projected_exhaust_at))}</span>`;
+  if(v.verdict==='sobre_ritmo'&&v.ratio!=null)return ` · <span class="wr">${v.ratio.toFixed(1).replace('.',',')}× sobre ritmo</span>`;
+  if(v.verdict==='bajo_ritmo')return ` · <span class="ok">alcanza</span>`;return '';}
+/* mismo bloque que el menú de menubar.html */
+function block(id,name,icon,m){
+  const {p,w5,w2,second}=m, lab=second==='monthly'?'Mensual':'Semanal';
+  let l5,l2;
+  if(m.blocked){const w=(w2&&w2.state==='exhausted')?w2:w5,t=Date.parse(w.resets_at);
+    l5=`5 h: <span class="bl">bloqueada hasta ${when(t)} (${dur(t-NOW)})</span>`;
+    l2=`${lab}: ${rem(w2)} % restante · ${w2.state==='exhausted'?'vuelve':'reinicia'} ${when(Date.parse(w2.resets_at))}`;}
+  else{
+    l5=!w5?'':w5.state==='idle'?'5 h: sin ventana activa':`5 h: ${rem(w5)} % restante${paceTxt(p,'5h')}`;
+    l2=`${lab}: ${rem(w2)} % restante · reinicia ${when(Date.parse(w2.resets_at))}${paceTxt(p,second)}`;}
+  const fr=m.err?`<span class="er">error: ${p.error} · último valor bueno de hace ${ago(p.fetched_at)}</span>`
+    :m.stale?`<span class="wr">dato desactualizado · hace ${ago(p.fetched_at)}</span>`:`dato de hace ${ago(p.fetched_at)}`;
+  return `<div class="prov ${m.blocked?'blocked':''}"><div class="h"><svg><use href="#${icon}"/></svg>${name}${PLAN[id]?`<span class="pl">· ${PLAN[id]}</span>`:''}</div>
+   ${l5?`<div class="r">${l5}</div>`:''}<div class="r">${l2}</div><div class="r m">${fr}</div></div>`;
+}
+function item(id,icon,m,open){
+  const cls=['item',m.blocked?'blocked':'',m.stale?'stale':'',open?'open':''].join(' ');
+  return `<div class="${cls}" data-id="${id}"><span class="lg"><svg><use href="#${icon}"/></svg></span><span class="n"><span>${m.top}</span><span>${m.bot}</span></span></div>`;
+}
+/* medidor: largo = % restante; color = veredicto de ritmo */
+const VC={bajo_ritmo:'c-ok',sobre_ritmo:'c-wr',se_agota:'c-bl',agotada:'c-bl',sin_datos:'c-nd'};
+function meter(p,w,key){
+  if(!w||w.state==='idle')return `<div class="mt"></div>`;
+  const v=pace(p,key), r=rem(w), c=w.state==='exhausted'?'c-bl':VC[v&&v.verdict]||'c-nd';
+  return `<div class="mt ${r===0?'zero':''}"><i class="${c}" style="width:${r}%"></i></div>`;
+}
+function row(id,icon,m,hov){
+  const cls=['row',m.blocked?'blocked':'',m.stale?'stale':'',hov?'hov':''].join(' ');
+  return `<div class="${cls}" data-id="${id}"><svg class="lg"><use href="#${icon}"/></svg>${m.err?'<span class="bad">!</span>':''}
+   <div class="ln"><u>5h</u><b>${m.top}</b></div>${meter(m.p,m.w5,'5h')}
+   <div class="ln"><u>${m.second==='monthly'?'mes':'sem'}</u><b>${m.bot}</b></div>${meter(m.p,m.w2,m.second)}</div>`;
+}
+const SYS=`<div class="sys"><svg viewBox="0 0 24 13"><path d="M2 0h18a2 2 0 012 2v9a2 2 0 01-2 2H2a2 2 0 01-2-2V2a2 2 0 012-2zm.6 1.2A1.4 1.4 0 001.2 2.6v7.8a1.4 1.4 0 001.4 1.4h16.8a1.4 1.4 0 001.4-1.4V2.6a1.4 1.4 0 00-1.4-1.4zM3 2.6h16v7.8H3zM23 4.2c.9.3 1.4 1 1.4 2.3s-.5 2-1.4 2.3z" fill-rule="evenodd"/></svg></div>
+<div class="sys"><svg viewBox="0 0 20 14"><path d="M10 2.6c2.7 0 5.1 1 6.9 2.8l1.2-1.3A11.600 11.600 0 0010 .8 11.600 11.600 0 001.900 4.100l1.200 1.300A9.800 9.800 0 0110 2.600zm0 3.600c1.700 0 3.200.6 4.400 1.700l1.200-1.300A8.100 8.100 0 0010 4.400a8.100 8.100 0 00-5.600 2.200l1.200 1.300A6.300 6.300 0 0110 6.200zm0 3.600c.8 0 1.500.3 2 .8L10 12.700 8 10.600c.5-.5 1.200-.8 2-.8z"/></svg></div>`;
+const OTHER=Array(8).fill('<div class="sys"><span class="dot"></span></div>').join('');
+const PTR=`<svg class="ptr" viewBox="0 0 18 24"><path d="M1 1v19l5-4.6 3.2 7.2 3-1.3-3.1-7h6.9z" fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+const NOTES={
+ dark:`<b>Barra lateral, plegada (por defecto).</b><ul>
+  <li>NSPanel de 60 pt de ancho, anclado al borde derecho con 6 pt de margen y centrado verticalmente; esquinas de 12 pt, material translúcido, borde de 0,5 px y sombra suave.</li>
+  <li>Una fila por proveedor: logo, 5 h arriba y semanal abajo (Kimi: mensual), cada cifra con un medidor del % restante coloreado por ritmo (verde alcanza, ámbar sobre ritmo, rojo se agota / agotada, gris sin datos).</li>
+  <li>Mismos estados que la barra de menú: bloqueada al 45 % (Codex, GLM), desactualizada al 72 %, error con "!" y últimos valores buenos, 5 h en reposo "—".</li>
+  <li>Siempre visible y no activante (no toma el foco); presente en todos los Espacios; ocultar en apps a pantalla completa es opcional.</li>
+  <li>Se arrastra desde el asa a lo largo del borde; la posición se recuerda. Clic en el asa o en una fila (o clic secundario) abre el menú de Token HUD; ⌥-clic abre el panel web.</li>
+  <li>Modos excluyentes: con la barra lateral activa, Token HUD no aparece en la barra de menú (solo iconos del sistema y el notch).</li></ul>`,
+ hover:`<b>Puntero sobre una fila (Claude).</b><ul>
+  <li>Tras ~300 ms aparece a la izquierda un globo con el mismo bloque del menú: plan, 5 h con ritmo u hora de desbloqueo, semanal/mensual con proyección, antigüedad del dato.</li>
+  <li>El globo no activa la app y se cierra al salir de la fila. Con anclaje izquierdo, se abre hacia la derecha.</li></ul>`,
+ light:`<b>Apariencia clara.</b> Sigue el modo del sistema; mismo material translúcido y mismas reglas de estado. Ancho 60 pt, borde derecho, margen 6 pt.`,
+ menu:`<b>Menú abierto desde la barra lateral.</b><ul>
+  <li>En modo barra lateral no hay ítems en la barra de menú: el menú se abre con clic en el asa o en una fila (o clic secundario), a la izquierda de la barra (a la derecha si está en el borde izquierdo).</li>
+  <li>"Mostrar en": Barra de menú / Barra lateral, opciones excluyentes; ⌥⌘L alterna entre ambas. La elección se recuerda entre sesiones.</li>
+  <li>Volver a "Barra de menú" oculta la barra lateral y restaura los ítems de estado.</li>
+  <li>"Borde: derecho / izquierdo" solo aplica en modo barra lateral; al cambiar de borde se conserva la posición vertical.</li></ul>`,
+ error:`<b>Variante con error.</b> Kimi con error (valores conservados + "!") y Gemini desactualizado (72 %). Codex y GLM bloqueados (45 %).`};
+function scene(kind,scen){
+  const S=JSON.parse(JSON.stringify(S0));
+  if(scen==='error'){const k=S.providers.kimi;k.status='error';k.error='HTTP 401';k.fetched_at='2026-09-29T20:43:00Z';
+    const a=S.providers.agy;a.status='stale';a.fetched_at='2026-09-29T20:08:00Z';}
+  const M=ORDER.map(([id,n,ic])=>[id,n,ic,model(id,S.providers[id])]);
+  const side=`<div class="side"><div class="grip${scen==='menu'?' on':''}"><i></i></div>${M.map(([id,,ic,m])=>row(id,ic,m,scen==='hover'&&id==='claude')).join('')}</div>`;
+  const pop=scen==='hover'?`<div class="pop">${block(...M[0])}</div>${PTR}`:scen==='menu'?PTR:'';
+  const menu=scen!=='menu'?'':`<div class="menu">${M.map(([id,n,ic,m])=>block(id,n,ic,m)).join('<div class="sep"></div>')}
+   <div class="sep"></div>
+   <div class="mi hd"><span><span class="c"></span>Mostrar en</span><span class="k">⌥⌘L alterna</span><span class="tag">propuesta</span></div>
+   <div class="mi sub"><span><span class="c"></span>Barra de menú</span></div>
+   <div class="mi sub hl"><span><span class="c">✓</span>Barra lateral</span></div>
+   <div class="mi hd"><span><span class="c"></span>Borde de la barra lateral</span><span class="tag">propuesta</span></div>
+   <div class="mi sub"><span><span class="c">✓</span>Derecho</span></div>
+   <div class="mi sub"><span><span class="c"></span>Izquierdo</span></div>
+   <div class="sep"></div>
+   <div class="mi"><span>Abrir panel</span><span class="k">127.0.0.1:6739</span><span class="tag">propuesta · opcional</span></div>
+   <div class="mi"><span>Actualizar ahora</span><span class="k">cuota collect</span><span class="tag">propuesta · opcional</span></div>
+   <div class="sep"></div><div class="mi"><span>Salir</span><span class="k">⌘Q</span></div></div>`;
+  const winEl=`<div class="win"><div class="tb"><i></i><i></i><i></i></div>${Array(14).fill(0).map((_,i)=>`<div class="ln2" style="width:${[70,55,82,40,64,90,33,58,76,47,68,52,80,38][i]}%"></div>`).join('')}</div>`;
+  return `<div class="scene ${kind}" data-s="${scen}">${winEl}
+  <div class="bar"><div class="apps"><span style="font-size:15px"></span><b>Finder</b><span>Archivo</span><span>Edición</span><span>Visualización</span><span>Ir</span><span>Ventana</span><span>Ayuda</span></div>
+   <div class="right">${OTHER}${SYS}<div class="sys"><span>100 %</span></div><div class="clock">mar 29 sep&nbsp; 17:55</div></div></div>
+  <div class="notch"></div>${side}${pop}${menu}<div class="note">${NOTES[scen]}</div></div>`;
+}
+const P=new URLSearchParams(location.search), q=P.get('v');
+if(P.get('shot'))document.body.classList.add('shot');
+const V={dark:['1 · Oscura, plegada','dark','dark'],hover:['2 · Oscura, puntero sobre Claude','dark','hover'],light:['3 · Clara, plegada','light','light'],menu:['4 · Menú desde la barra lateral','dark','menu'],error:['Variante con error (oscura)','dark','error']};
+const want=q?q.split(','):Object.keys(V);
+document.getElementById('root').innerHTML=want.filter(k=>V[k]).map(k=>{const [t,kind,sc]=V[k];return `<div class="wrap"><h2>${t}</h2>${scene(kind,sc)}</div>`}).join('');
+/* layout: ocultar ítems bajo el notch, anclar barra lateral, globo, menú */
+document.querySelectorAll('.scene').forEach(s=>{
+  const R=s.getBoundingClientRect(), rel=el=>{const r=el.getBoundingClientRect();return {x:r.left-R.left,y:r.top-R.top,w:r.width,h:r.height}};
+  s.insertAdjacentHTML('beforeend',`<span class="tag free" style="left:870px;top:42px">sin ítems en la barra de menú (modo barra lateral)</span>`);
+  const sd=s.querySelector('.side'), top=37+(982-37-sd.offsetHeight)/2;
+  sd.style.top=top+'px';sd.style.left=(1512-6-60)+'px';
+  if(!s.querySelector('.menu'))s.insertAdjacentHTML('beforeend',`<span class="tag free" style="right:6px;top:${top+sd.offsetHeight+10}px">propuesta · 60 pt, borde derecho</span>`);
+  const pop=s.querySelector('.pop');
+  if(pop){const rw=rel(s.querySelector('.row.hov'));pop.style.left=(1512-6-60-10-400)+'px';pop.style.top=(rw.y-14)+'px';pop.style.setProperty('--ay',(rw.h/2+8)+'px');
+    const p=s.querySelector('.ptr');p.style.left=(rw.x+40)+'px';p.style.top=(rw.y+1)+'px';}
+  const m=s.querySelector('.menu');if(m){const g=rel(s.querySelector('.grip'));m.style.left=(1512-6-60-8-410)+'px';m.style.top=Math.max(44,Math.min(g.y,982-m.offsetHeight-8))+'px';
+    const p=s.querySelector('.ptr');p.style.left=(g.x+g.w/2)+'px';p.style.top=(g.y+4)+'px';}
+});
+</script></body></html>

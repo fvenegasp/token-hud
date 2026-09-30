@@ -239,4 +239,87 @@ struct PresenterTests {
     @Test func missingSchemaVersionIsUnsupported() {
         #expect(StateParser.parse(Data(#"{"providers":{}}"#.utf8)) == .unsupportedSchema(nil))
     }
+
+    // MARK: - Medidores de la barra lateral (color por nivel restante)
+
+    @Test func metersSnapshot() {
+        let p = Self.snapshotPresentation()
+        // Claude: 68 y 70 % restante → verde; la semanal "se agota" → aviso de ritmo.
+        let claude = Self.provider(p, "claude")
+        #expect(claude.meterTop == MeterPresentation(remaining: 68, role: .ok))
+        #expect(claude.meterBottom == MeterPresentation(remaining: 70, role: .ok, paceWarning: true))
+        // Codex: semanal agotada → rojo con 0, sin aviso (ya no corre el ritmo).
+        #expect(Self.provider(p, "codex").meterBottom == MeterPresentation(remaining: 0, role: .danger))
+        // Kimi: mensual 78 % → verde; "7,4× sobre ritmo" → aviso de ritmo.
+        #expect(Self.provider(p, "kimi").meterBottom == MeterPresentation(remaining: 78, role: .ok, paceWarning: true))
+        // GLM: 5 h en reposo → nil (pista vacía); semanal agotada → rojo.
+        #expect(Self.provider(p, "zai").meterTop == nil)
+        #expect(Self.provider(p, "zai").meterBottom == MeterPresentation(remaining: 0, role: .danger))
+        // Gemini: claves de pace compuestas ("weekly:Gemini Models"); "alcanza" no avisa.
+        #expect(Self.provider(p, "agy").meterTop == MeterPresentation(remaining: 100, role: .ok))
+        #expect(Self.provider(p, "agy").meterBottom == MeterPresentation(remaining: 86, role: .ok))
+    }
+
+    @Test func meterLevelBoundaries() {
+        // El color sigue el nivel restante: > 50 verde, 20…50 ámbar, < 20 rojo.
+        // 95 % con veredicto "se_agota": verde + aviso; 15 %: rojo.
+        let p = Self.presentJSON("""
+        {"schema_version":1,"providers":{"claude":{
+          "status":"ok","fetched_at":"2026-09-29T20:53:06Z",
+          "windows":[
+            {"kind":"5h","group":null,"used_pct":85.0,"resets_at":"2026-09-30T01:00:00Z","state":"active"},
+            {"kind":"weekly","group":null,"used_pct":5.0,"resets_at":"2026-10-05T11:00:00Z","state":"active"}],
+          "pace":{"5h":{"verdict":"sobre_ritmo","ratio":2.0},
+                  "weekly":{"verdict":"se_agota","projected_exhaust_at":"2026-10-03T10:00:00Z"}}}}}
+        """)
+        let claude = Self.provider(p, "claude")
+        #expect(claude.meterTop == MeterPresentation(remaining: 15, role: .danger, paceWarning: true))
+        #expect(claude.meterBottom == MeterPresentation(remaining: 95, role: .ok, paceWarning: true))
+    }
+
+    @Test func meterWithoutPaceVerdictHasNoWarning() {
+        // Sin veredicto útil no hay aviso; el color igual sale del nivel (50 → ámbar).
+        let p = Self.presentJSON("""
+        {"schema_version":1,"providers":{"claude":{
+          "status":"ok","fetched_at":"2026-09-29T20:53:06Z",
+          "windows":[
+            {"kind":"5h","group":null,"used_pct":40.0,"resets_at":"2026-09-29T23:00:00Z","state":"active"},
+            {"kind":"weekly","group":null,"used_pct":50.0,"resets_at":"2026-10-05T11:00:00Z","state":"active"}],
+          "pace":{"5h":{"verdict":"sin_datos"}}}}}
+        """)
+        let claude = Self.provider(p, "claude")
+        #expect(claude.meterTop == MeterPresentation(remaining: 60, role: .ok))
+        #expect(claude.meterBottom == MeterPresentation(remaining: 50, role: .warn))
+    }
+
+    @Test func meterExhaustedIsRedEmptyAndIdleIsNil() {
+        // Agotada manda el nivel: 0 % → rojo y pista vacía teñida, sin aviso de
+        // ritmo. Reposo → nil (pista neutra). El veredicto ya no tiñe el medidor.
+        let p = Self.presentJSON("""
+        {"schema_version":1,"providers":{"zai":{
+          "status":"ok","fetched_at":"2026-09-29T20:53:06Z",
+          "windows":[
+            {"kind":"5h","group":null,"used_pct":0.0,"resets_at":null,"state":"idle"},
+            {"kind":"weekly","group":null,"used_pct":100.0,"resets_at":"2026-10-05T11:00:00Z","state":"exhausted"}],
+          "pace":{"5h":{"verdict":"bajo_ritmo"},"weekly":{"verdict":"bajo_ritmo"}}}}}
+        """)
+        let zai = Self.provider(p, "zai")
+        #expect(zai.meterTop == nil)
+        #expect(zai.meterBottom == MeterPresentation(remaining: 0, role: .danger))
+    }
+
+    @Test func metersMissingWindowsAreNil() {
+        let p = Self.presentJSON("""
+        {"schema_version":1,"providers":{"claude":{
+          "status":"ok","fetched_at":"2026-09-29T20:53:06Z",
+          "windows":[{"kind":"5h","group":null,"used_pct":40.0,"resets_at":"2026-09-29T23:00:00Z","state":"active"}],
+          "pace":{}}}}
+        """)
+        let claude = Self.provider(p, "claude")
+        #expect(claude.meterTop != nil)
+        #expect(claude.meterBottom == nil)
+        // Sin estado legible: todo vacío.
+        let empty = Presenter.present(.missing, now: Self.now, timeZone: Self.tz)
+        #expect(Self.provider(empty, "claude").meterTop == nil)
+    }
 }

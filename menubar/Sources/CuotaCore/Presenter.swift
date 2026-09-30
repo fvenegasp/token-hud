@@ -19,6 +19,23 @@ public struct LineSegment: Sendable, Equatable {
     }
 }
 
+/// Medidor de una ventana para la barra lateral: % restante (mismo número que
+/// las cifras) y color según el NIVEL restante (verde > 50, ámbar 20…50,
+/// rojo < 20), de modo que número, largo y color cuenten lo mismo. El ritmo va
+/// aparte: `paceWarning` marca "a este paso se acaba antes del reinicio".
+public struct MeterPresentation: Sendable, Equatable {
+    public var remaining: Int
+    public var role: ColorRole
+    /// Veredicto "se_agota" o "sobre_ritmo" con la ventana aún viva.
+    public var paceWarning: Bool
+
+    public init(remaining: Int, role: ColorRole, paceWarning: Bool = false) {
+        self.remaining = remaining
+        self.role = role
+        self.paceWarning = paceWarning
+    }
+}
+
 /// Presentación de un proveedor: valores de la tira de barra + líneas del menú.
 public struct ProviderPresentation: Sendable, Equatable {
     public var id: String
@@ -26,6 +43,9 @@ public struct ProviderPresentation: Sendable, Equatable {
     public var plan: String?
     public var stripTop: String
     public var stripBottom: String
+    /// nil = 5 h en reposo o sin ventana (pista vacía, cifra "—").
+    public var meterTop: MeterPresentation?
+    public var meterBottom: MeterPresentation?
     public var blocked: Bool
     public var stale: Bool
     public var error: Bool
@@ -33,12 +53,15 @@ public struct ProviderPresentation: Sendable, Equatable {
     public var lines: [[LineSegment]]
 
     public init(id: String, name: String, plan: String?, stripTop: String, stripBottom: String,
+                meterTop: MeterPresentation?, meterBottom: MeterPresentation?,
                 blocked: Bool, stale: Bool, error: Bool, idle5h: Bool, lines: [[LineSegment]]) {
         self.id = id
         self.name = name
         self.plan = plan
         self.stripTop = stripTop
         self.stripBottom = stripBottom
+        self.meterTop = meterTop
+        self.meterBottom = meterBottom
         self.blocked = blocked
         self.stale = stale
         self.error = error
@@ -105,6 +128,7 @@ public enum Presenter {
 
     private static func empty(id: String, name: String) -> ProviderPresentation {
         ProviderPresentation(id: id, name: name, plan: nil, stripTop: "—", stripBottom: "—",
+                             meterTop: nil, meterBottom: nil,
                              blocked: false, stale: false, error: false, idle5h: false, lines: [])
     }
 
@@ -190,15 +214,36 @@ public enum Presenter {
 
         return ProviderPresentation(id: id, name: name, plan: plan,
                                     stripTop: stripTop, stripBottom: stripBottom,
+                                    meterTop: meter(w5, provider: provider, paceKey: "5h"),
+                                    meterBottom: meter(w2, provider: provider, paceKey: second),
                                     blocked: blocked, stale: stale, error: error, idle5h: idle5h,
                                     lines: lines)
+    }
+
+    /// Medidor de la barra lateral: nil si la ventana no existe o está en reposo.
+    /// Color por nivel restante (> 50 verde, 20…50 ámbar, < 20 rojo; agotada → 0
+    /// rojo). El aviso de ritmo ("se_agota"/"sobre_ritmo") viaja aparte y no tiñe.
+    private static func meter(_ window: QuotaWindow?, provider: ProviderState,
+                              paceKey: String) -> MeterPresentation? {
+        guard let window, window.state != "idle" else { return nil }
+        let rem = remaining(window)
+        let role: ColorRole = rem > 50 ? .ok : (rem >= 20 ? .warn : .danger)
+        let verdict = paceEntry(provider, key: paceKey)?.verdict
+        let paceWarning = window.state != "exhausted"
+            && (verdict == "se_agota" || verdict == "sobre_ritmo")
+        return MeterPresentation(remaining: rem, role: role, paceWarning: paceWarning)
+    }
+
+    /// Entrada de pace por clave exacta o compuesta ("weekly:Gemini Models").
+    private static func paceEntry(_ provider: ProviderState, key: String) -> PaceEntry? {
+        provider.pace.first(where: { $0.key == key || $0.key.hasPrefix(key + ":") })?.value
     }
 
     /// Segmento de ritmo: verde "alcanza", ámbar "N× sobre ritmo", rojo "se agota …".
     /// La clave de pace puede venir compuesta ("weekly:Gemini Models").
     private static func paceSegments(_ provider: ProviderState, key: String,
                                      now: Date, calendar: Calendar) -> [LineSegment] {
-        guard let entry = provider.pace.first(where: { $0.key == key || $0.key.hasPrefix(key + ":") })?.value,
+        guard let entry = paceEntry(provider, key: key),
               let verdict = entry.verdict
         else { return [] }
         switch verdict {

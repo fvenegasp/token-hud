@@ -86,6 +86,38 @@ enum StripImageRenderer {
         return image
     }
 
+    /// Logo monocromo del proveedor teñido con `color` (barra lateral: mismo
+    /// SVG recortado que la tira, pintado con labelColor en vez de plantilla).
+    static func tintedLogo(providerID: String, height: CGFloat, color: NSColor) -> NSImage {
+        let scale: CGFloat = 2
+        let opticalScale: [String: CGFloat] = ["kimi": 0.80, "zai": 0.82, "agy": 0.84]
+        let logoHeight = height * (opticalScale[providerID] ?? 1.0)
+        let logo = makeLogo(providerID: providerID, height: logoHeight * scale)
+        let pixelWidth = max(1, Int(ceil(logo.width)))
+
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelWidth,
+            pixelsHigh: Int(logoHeight * scale),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: rep)
+        else { return NSImage() }
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        logo.draw(NSRect(x: 0, y: 0, width: logo.width, height: logoHeight * scale))
+        // Teñir respetando la silueta: relleno limitado a los píxeles con alfa.
+        color.setStroke()
+        color.setFill()
+        NSRect(x: 0, y: 0, width: logo.width, height: logoHeight * scale).fill(using: .sourceAtop)
+        NSGraphicsContext.restoreGraphicsState()
+
+        let image = NSImage(size: NSSize(width: logo.width / scale, height: logoHeight))
+        image.addRepresentation(rep)
+        return image
+    }
+
     private static func drawLine(_ string: NSString, size: NSSize, font: NSFont,
                                  attributes: [NSAttributedString.Key: Any],
                                  x: CGFloat, width: CGFloat, boxBottom: CGFloat, boxHeight: CGFloat) {
