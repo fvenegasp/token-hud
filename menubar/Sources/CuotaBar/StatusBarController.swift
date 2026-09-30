@@ -201,6 +201,8 @@ final class StatusBarController {
         menu.addItem(sectionHeader("Borde de la barra lateral"))
         menu.addItem(edgeItem("Derecho", edge: .right))
         menu.addItem(edgeItem("Izquierdo", edge: .left))
+        menu.addItem(edgeItem("Superior", edge: .top))
+        menu.addItem(edgeItem("Inferior", edge: .bottom))
         menu.addItem(sectionHeader("Tamaño de la barra lateral"))
         menu.addItem(sizeItem("Compacto", size: .compact))
         menu.addItem(sizeItem("Normal", size: .normal))
@@ -332,6 +334,13 @@ extension StatusBarController: SidebarDelegate {
     func openMenu(in view: NSView, at point: NSPoint) {
         // El mismo menú de Token HUD, posicionado junto a la barra lateral.
         rebuildMenu()
+        var point = point
+        if settings.edge == .bottom {
+            // Borde inferior: el menú se abre hacia arriba, hacia el centro de
+            // la pantalla (popUp ancla la esquina superior izquierda).
+            menu.update()
+            point.y -= menu.size.height
+        }
         menu.popUp(positioning: nil, at: point, in: view)
     }
 

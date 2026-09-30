@@ -23,3 +23,16 @@
   Color by remaining level: >50 green, 20–50 orange, <20 red; exhausted = red "0" with red-tinted track; idle 5 h = "—".
   Pace warning (`se_agota` / `sobre_ritmo`) = small orange "▲" after the label.
 - Screenshots: `sidebar-dark.png` (dark, hover, menu stacked), `sidebar-light.png` (2×, 1512 pt wide).
+
+# Horizontal (top/bottom) mockup
+
+- `sidebar-horizontal.html` (self-contained, same data and logos): the bar at the top or bottom edge, horizontal,
+  in the implemented look (Normal size). `?v=bottom|nodock|top|menu`; `&shot=1`.
+- Placement uses the screen's visible frame: 6 pt from the menu bar (top) or the Dock (bottom), never covering them;
+  with no Dock at the bottom (side or auto-hide), 6 pt from the screen edge. Centered; drag moves it along the edge,
+  position remembered per orientation.
+- Cells side by side (logo left, "5h" / "sem" stacked with meters), vertical grip on the left. Height by size:
+  Compacto 43 / Normal 56 / Grande 72 pt (proportional to the 64 / 84 / 108 pt widths).
+- Scenes: dark bottom above the Dock; dark bottom without Dock; light top with the Claude popover opening downward;
+  menu opening upward with "Borde" = Derecho / Izquierdo / Superior / Inferior (the last two proposed).
+- Screenshots: `sidebar-horizontal-dark.png` (bottom, nodock, menu stacked), `sidebar-horizontal-light.png` (2×).

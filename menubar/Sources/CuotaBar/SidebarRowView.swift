@@ -7,14 +7,23 @@ import CuotaCore
 /// mismo (nivel restante); el ritmo es una "▲" ámbar junto a la etiqueta.
 /// Mismas reglas de estado que la tira:
 /// bloqueada 45 %, desactualizada 72 %, error con "!" y últimos valores buenos.
+///
+/// En orientación horizontal (bordes superior / inferior) la misma vista dibuja
+/// una celda: logo a la izquierda y los dos renglones con sus medidores a la
+/// derecha; el filete separador pasa de horizontal a vertical. Fuentes,
+/// colores y reglas de medidor son los mismos en ambas orientaciones.
 @MainActor
 final class SidebarRowView: NSView {
     private var provider: ProviderPresentation?
     private var logo: NSImage?
     private var secondaryLabel = "sem"
     private var metrics = SidebarSize.normal.metrics
-    /// Índice en Presenter.order: la primera fila no lleva filete superior.
+    /// Índice en Presenter.order: la primera fila no lleva filete separador.
     var rowIndex = 0
+    /// true = celda horizontal (barra en borde superior / inferior).
+    var horizontal = false {
+        didSet { needsDisplay = true }
+    }
     var isHovered = false {
         didSet { needsDisplay = true }
     }
@@ -38,6 +47,29 @@ final class SidebarRowView: NSView {
         metrics = size.metrics
         reloadLogo()
         needsDisplay = true
+    }
+
+    /// Ancho de la celda horizontal, derivado de su contenido: logo real +
+    /// renglones medidos con las fuentes vigentes (peor caso "100 %" y la
+    /// "▲" de ritmo reservada, para que el ancho no salte al cambiar datos).
+    func preferredCellWidth() -> CGFloat {
+        let scale = metrics.panelHeight / SidebarMetrics.normal.panelHeight
+        let labelFont = NSFont.systemFont(ofSize: metrics.labelFontSize, weight: .medium)
+        let valueFont = NSFont.monospacedDigitSystemFont(ofSize: metrics.digitFontSize, weight: .semibold)
+        let pctFont = NSFont.systemFont(ofSize: metrics.percentFontSize, weight: .medium)
+        let markFont = NSFont.systemFont(ofSize: metrics.paceMarkFontSize)
+
+        let labelW = max(("5h" as NSString).size(withAttributes: [.font: labelFont]).width,
+                         (secondaryLabel as NSString).size(withAttributes: [.font: labelFont]).width)
+        let markW = ("▲" as NSString).size(withAttributes: [.font: markFont]).width
+        let valueW = ("100" as NSString).size(withAttributes: [.font: valueFont]).width
+        let pctW = ("%" as NSString).size(withAttributes: [.font: pctFont]).width
+
+        let logoW = logo?.size.width ?? metrics.logoHeight
+        let padding = 10 * scale
+        let logoGap = 8 * scale
+        let linesW = labelW + 3 + markW + 8 * scale + valueW + 1 + pctW
+        return ceil(padding + logoW + logoGap + linesW + padding)
     }
 
     func update(provider: ProviderPresentation) {
@@ -90,6 +122,74 @@ final class SidebarRowView: NSView {
     // MARK: - Dibujo
 
     override func draw(_ dirtyRect: NSRect) {
+        if horizontal {
+            drawCell()
+        } else {
+            drawRow()
+        }
+    }
+
+    /// Celda horizontal (bordes superior / inferior): logo a la izquierda y los
+    /// dos renglones con sus medidores a la derecha, centrados en vertical.
+    /// Mismo código de renglón y medidor que la fila vertical.
+    private func drawCell() {
+        guard let provider else { return }
+        let context = NSGraphicsContext.current?.cgContext
+
+        if isHovered {
+            NSColor.labelColor.withAlphaComponent(0.10).setFill()
+            NSBezierPath(roundedRect: bounds.insetBy(dx: 0, dy: 1), xRadius: 6, yRadius: 6).fill()
+        }
+
+        // Regla de opacidad de la tira aplicada a toda la celda.
+        let alpha: CGFloat = provider.blocked ? 0.45 : (provider.stale ? 0.72 : 1.0)
+        context?.setAlpha(alpha)
+        defer { context?.setAlpha(1.0) }
+
+        // Filete vertical entre celdas (la primera no lleva).
+        if rowIndex > 0 {
+            NSColor.labelColor.withAlphaComponent(0.20).setFill()
+            NSRect(x: 0, y: 5, width: 0.5, height: bounds.height - 10).fill()
+        }
+
+        let scale = metrics.panelHeight / SidebarMetrics.normal.panelHeight
+        let padding: CGFloat = 10 * scale
+        let logoGap: CGFloat = 8 * scale
+        let lineHeight: CGFloat = 17 * scale
+        let meterGap: CGFloat = 2 * scale
+        // Avance por renglón + medidor (misma aritmética que drawMeter).
+        let blockAdvance = lineHeight + meterGap / 2 + metrics.meterHeight + meterGap
+        let blockHeight = 2 * blockAdvance
+
+        // Logo a la izquierda, centrado en vertical; "!" arriba a la derecha.
+        let logoW = logo?.size.width ?? metrics.logoHeight
+        if let logo {
+            logo.draw(in: NSRect(x: padding, y: (bounds.height - metrics.logoHeight) / 2,
+                                 width: logo.size.width, height: metrics.logoHeight),
+                      from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+                      hints: nil)
+        }
+        if provider.error {
+            drawErrorBadge(x: bounds.width - 14, y: 4)
+        }
+
+        let contentX = padding + logoW + logoGap
+        let contentW = bounds.width - contentX - padding
+        var y: CGFloat = (bounds.height - blockHeight) / 2
+
+        y = drawLine(label: "5h", value: provider.stripTop, meter: provider.meterTop,
+                     x: contentX, width: contentW, y: y, lineHeight: lineHeight)
+        y = drawMeter(provider.meterTop, x: contentX, width: contentW, y: y,
+                      gap: meterGap, height: metrics.meterHeight)
+        y = drawLine(label: secondaryLabel, value: provider.stripBottom, meter: provider.meterBottom,
+                     x: contentX, width: contentW, y: y, lineHeight: lineHeight)
+        _ = drawMeter(provider.meterBottom, x: contentX, width: contentW, y: y,
+                      gap: meterGap, height: metrics.meterHeight)
+    }
+
+    /// Fila vertical (bordes derecho / izquierdo): logo centrado arriba y los
+    /// dos renglones con sus medidores a todo el ancho.
+    private func drawRow() {
         guard let provider else { return }
         let context = NSGraphicsContext.current?.cgContext
 
